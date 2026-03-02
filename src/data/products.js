@@ -185,7 +185,20 @@ export const saleProducts = [...womensProducts, ...mensProducts, ...kidsProducts
 
 export const allProducts = [...womensProducts, ...mensProducts, ...kidsProducts]
 
-export const homeHighlights = allProducts.slice(0, 12)
+export const homeHighlights = [
+  womensProducts[0],
+  mensProducts[0],
+  kidsProducts[0],
+  womensProducts[1],
+  mensProducts[1],
+  kidsProducts[1],
+  womensProducts[2],
+  mensProducts[2],
+  kidsProducts[2],
+  womensProducts[3],
+  mensProducts[3],
+  kidsProducts[3],
+].filter(Boolean)
 
 export const shopBenefits = [
   { title: 'Cash on Delivery', text: 'Flexible payment options for every district in Sri Lanka.' },
