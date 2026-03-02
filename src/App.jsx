@@ -6,6 +6,7 @@ import Kids from './Packages/Kids/Kids'
 import Mens from './Packages/Mens/Mens'
 import Womens from './Packages/Womens/Womens'
 import Sales from './Packages/Sales/Sales'
+import Contact from './Packages/Contact/Contact'
 import CartDrawer from './Components/CartDrawer'
 import PaymentModal from './Components/PaymentModal'
 import WhatsAppFloat from './Components/WhatsAppFloat'
@@ -30,6 +31,7 @@ function App() {
   return (
     <div className="app-shell">
       <Nav />
+
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -37,8 +39,10 @@ function App() {
           <Route path="/mens" element={<Mens />} />
           <Route path="/womens" element={<Womens />} />
           <Route path="/sales" element={<Sales />} />
+          <Route path="/contact" element={<Contact />} />
         </Routes>
       </main>
+
       <Footer />
       <CartDrawer />
       <PaymentModal />

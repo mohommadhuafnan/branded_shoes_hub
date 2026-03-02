@@ -16,6 +16,7 @@ function Nav() {
       setHidden(current > lastScroll && current > 120)
       setLastScroll(current)
     }
+
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [lastScroll])
@@ -28,6 +29,7 @@ function Nav() {
     { to: '/mens', label: 'Mens' },
     { to: '/kids', label: 'Kids' },
     { to: '/sales', label: 'Sales' },
+    { to: '/contact', label: 'Contact' },
   ]
 
   return (
@@ -53,15 +55,27 @@ function Nav() {
           <button type="button" className="icon-btn search-btn" aria-label="Search">
             <FaSearch />
           </button>
+
           <button type="button" className="icon-btn" aria-label="Favorites">
             <FaHeart />
             <span className="count-badge">{favorites.length}</span>
           </button>
-          <button type="button" className="icon-btn" aria-label="Cart" onClick={() => setIsCartOpen(true)}>
+
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Cart"
+            onClick={() => setIsCartOpen(true)}
+          >
             <FaShoppingCart />
             <span className="count-badge">{cartSummary.itemCount}</span>
           </button>
-          <button type="button" className="icon-btn mobile-toggle" onClick={() => setMobileOpen((prev) => !prev)}>
+
+          <button
+            type="button"
+            className="icon-btn mobile-toggle"
+            onClick={() => setMobileOpen((prev) => !prev)}
+          >
             {mobileOpen ? <FaTimes /> : <FaBars />}
           </button>
         </div>

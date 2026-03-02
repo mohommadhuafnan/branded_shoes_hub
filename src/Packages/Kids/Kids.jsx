@@ -1,6 +1,6 @@
 import CatalogPage from '../../Components/CatalogPage'
 import { kidsProducts } from '../../data/products'
-import hero from '../../assets/newarri3.jpg'
+import hero from '../../assets/kids1.jpg'
 
 function Kids() {
   return (

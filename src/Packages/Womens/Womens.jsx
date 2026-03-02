@@ -1,10 +1,12 @@
 import CatalogPage from '../../Components/CatalogPage'
+import Brand from '../../Components/Brand'
 import { womensProducts } from '../../data/products'
-import hero1 from '../../assets/newarri1.jpg'
-import hero2 from '../../assets/newarri2.jpg'
-import hero3 from '../../assets/newarri3.jpg'
-import hero4 from '../../assets/newarri4.jpg'
+import hero1 from '../../assets/womens1.jpg'
+import hero2 from '../../assets/womens2.jpg'
+import hero3 from '../../assets/womens13.jpg'
+import hero4 from '../../assets/womens14.jpg'
 import WomensHero from '../../Components/WomensHero'
+import './Womens.css'
 
 function Womens() {
   const womensSlides = [
@@ -37,6 +39,10 @@ function Womens() {
   return (
     <>
       <WomensHero slides={womensSlides} />
+
+      <section className="women-brand-section">
+      <Brand/>
+      </section>
       <CatalogPage hideHero={true} products={womensProducts} />
     </>
   )

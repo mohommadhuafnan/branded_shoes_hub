@@ -10,7 +10,70 @@ import new4 from '../assets/newarri4.jpg'
 import new5 from '../assets/newarri5.jpg'
 import new6 from '../assets/newarri6.jpg'
 
-const imagePool = [cal1, cal2, cal3, cal4, cal5, new1, new2, new3, new4, new5, new6, cal1]
+import womens1 from '../assets/womens1.jpg'
+import womens2 from '../assets/womens2.jpg'
+import womens3 from '../assets/womens3.jpg'
+import womens4 from '../assets/womens4.jpg'
+import womens5 from '../assets/womens5.jpg'
+import womens6 from '../assets/womens6.jpg'
+import womens7 from '../assets/womens7.jpg'
+import womens8 from '../assets/womens8.jpg'
+import womens9 from '../assets/womens9.jpg'
+import womens10 from '../assets/womens10.jpg'
+import womens11 from '../assets/womens11.jpg'
+import womens12 from '../assets/womens12.jpg'
+import womens13 from '../assets/womens13.jpg'
+import womens14 from '../assets/womens14.jpg'
+
+import kids1 from '../assets/kids1.jpg'
+import kids2 from '../assets/kids2.jpg'
+import kids3 from '../assets/kids3.jpg'
+import kids4 from '../assets/kids4.jpg'
+import kids5 from '../assets/kids5.jpg'
+import kids6 from '../assets/kids6.jpg'
+import kids7 from '../assets/kids7.jpg'
+import kids8 from '../assets/kids8.jpg'
+import kids9 from '../assets/kids9.jpg'
+import kids10 from '../assets/kids10.jpg'
+import kids11 from '../assets/kids11.jpg'
+import kids12 from '../assets/kids12.jpg'
+import kids13 from '../assets/kids13.jpg'
+
+const generalImagePool = [cal1, cal2, cal3, cal4, cal5, new1, new2, new3, new4, new5, new6, cal1]
+
+const womensImagePool = [
+  womens1,
+  womens2,
+  womens3,
+  womens4,
+  womens5,
+  womens6,
+  womens7,
+  womens8,
+  womens9,
+  womens10,
+  womens11,
+  womens12,
+  womens13,
+  womens14,
+]
+
+const kidsImagePool = [
+  kids1,
+  kids2,
+  kids3,
+  kids4,
+  kids5,
+  kids6,
+  kids7,
+  kids8,
+  kids9,
+  kids10,
+  kids11,
+  kids12,
+  kids13,
+]
+
 const sizeSets = {
   womens: ['36', '37', '38', '39', '40'],
   mens: ['40', '41', '42', '43', '44'],
@@ -18,30 +81,60 @@ const sizeSets = {
 }
 
 const womensNames = [
-  'Velvet Street Sneaker', 'Rose Glow Runner', 'Cloud Walk Flats', 'Luna Comfort Slip-On',
-  'Urban Chic Trainer', 'Blush Motion Shoes', 'Soft Step Casual', 'Pearl Active Knit',
-  'Shine Flex Court', 'Silk Motion Sneaker', 'Aurora Daily Step', 'Classic Grace Pair',
-]
-const mensNames = [
-  'Metro Pace Sneaker', 'Titan Street Walk', 'Aero Motion Runner', 'Prime Comfort Slip',
-  'Rush Flex Trainer', 'Summit Trail Step', 'Power Court Classic', 'Motion Grid Shoes',
-  'Urban Track Pro', 'Night Sprint Mesh', 'Civic Edge Pair', 'Fusion Grip Runner',
-]
-const kidsNames = [
-  'Mini Jump Shoes', 'Play Time Runner', 'Bright Step Kids', 'Little Star Sneaker',
-  'Rocket Dash Pair', 'Happy Walk Sandals', 'Zoom Fun Trainer', 'Color Pop Shoes',
-  'Tiny Sprint Mesh', 'School Day Comfort', 'Bounce Buddy Pair', 'Dream Step Kids',
+  'Velvet Street Sneaker',
+  'Rose Glow Runner',
+  'Cloud Walk Flats',
+  'Luna Comfort Slip-On',
+  'Urban Chic Trainer',
+  'Blush Motion Shoes',
+  'Soft Step Casual',
+  'Pearl Active Knit',
+  'Shine Flex Court',
+  'Silk Motion Sneaker',
+  'Aurora Daily Step',
+  'Classic Grace Pair',
 ]
 
-function makeProducts(category, names, basePrice, saleEvery = 0, deliveryTag) {
+const mensNames = [
+  'Metro Pace Sneaker',
+  'Titan Street Walk',
+  'Aero Motion Runner',
+  'Prime Comfort Slip',
+  'Rush Flex Trainer',
+  'Summit Trail Step',
+  'Power Court Classic',
+  'Motion Grid Shoes',
+  'Urban Track Pro',
+  'Night Sprint Mesh',
+  'Civic Edge Pair',
+  'Fusion Grip Runner',
+]
+
+const kidsNames = [
+  'Mini Jump Shoes',
+  'Play Time Runner',
+  'Bright Step Kids',
+  'Little Star Sneaker',
+  'Rocket Dash Pair',
+  'Happy Walk Sandals',
+  'Zoom Fun Trainer',
+  'Color Pop Shoes',
+  'Tiny Sprint Mesh',
+  'School Day Comfort',
+  'Bounce Buddy Pair',
+  'Dream Step Kids',
+]
+
+function makeProducts(category, names, basePrice, saleEvery = 0, deliveryTag, images) {
   return names.map((name, index) => {
     const price = basePrice + index * 350
     const originalPrice = saleEvery && index % saleEvery === 0 ? price + 2200 : null
+
     return {
       id: `${category}-${index + 1}`,
       name,
       category,
-      image: imagePool[index % imagePool.length],
+      image: images[index % images.length],
       price,
       originalPrice,
       sizes: sizeSets[category],
@@ -54,9 +147,32 @@ function makeProducts(category, names, basePrice, saleEvery = 0, deliveryTag) {
   })
 }
 
-export const womensProducts = makeProducts('womens', womensNames, 4900, 3, 'Free delivery above LKR 15,000')
-export const mensProducts = makeProducts('mens', mensNames, 5600, 4, 'Islandwide express delivery')
-export const kidsProducts = makeProducts('kids', kidsNames, 3200, 2, 'Fast school-week shipping')
+export const womensProducts = makeProducts(
+  'womens',
+  womensNames,
+  4900,
+  3,
+  'Free delivery above LKR 15,000',
+  womensImagePool
+)
+
+export const mensProducts = makeProducts(
+  'mens',
+  mensNames,
+  5600,
+  4,
+  'Islandwide express delivery',
+  generalImagePool
+)
+
+export const kidsProducts = makeProducts(
+  'kids',
+  kidsNames,
+  3200,
+  2,
+  'Fast school-week shipping',
+  kidsImagePool
+)
 
 export const saleProducts = [...womensProducts, ...mensProducts, ...kidsProducts]
   .filter((product) => product.originalPrice)

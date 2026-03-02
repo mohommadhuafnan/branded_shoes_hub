@@ -1,0 +1,496 @@
+.sales-page {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff8f4 0%, #ffffff 40%, #fff5ee 100%);
+  overflow: hidden;
+}
+
+/* HERO */
+.sales-hero {
+  position: relative;
+  width: 100%;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  padding: 60px 8%;
+  background: linear-gradient(135deg, #111 0%, #1d1d1d 35%, #ff5e3a 100%);
+}
+
+.sales-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255,255,255,0.15), transparent 35%);
+  pointer-events: none;
+}
+
+.sales-hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 50px;
+  align-items: center;
+}
+
+.sales-left {
+  color: #fff;
+  animation: slideUp 1s ease;
+}
+
+.hot-badge {
+  display: inline-block;
+  background: #fff;
+  color: #ff4d2d;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 30px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  animation: pulseBadge 2s infinite;
+}
+
+.sales-left h1 {
+  font-size: 56px;
+  line-height: 1.1;
+  margin-bottom: 18px;
+}
+
+.sales-left p {
+  font-size: 18px;
+  line-height: 1.8;
+  max-width: 600px;
+  color: #f3f3f3;
+  margin-bottom: 30px;
+}
+
+.sales-buttons {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 35px;
+  flex-wrap: wrap;
+}
+
+.shop-btn,
+.offer-btn {
+  text-decoration: none;
+  padding: 14px 28px;
+  border-radius: 40px;
+  font-weight: 700;
+  transition: 0.4s ease;
+}
+
+.shop-btn {
+  background: #fff;
+  color: #111;
+}
+
+.offer-btn {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+}
+
+.shop-btn:hover {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.offer-btn:hover {
+  background: #fff;
+  color: #111;
+  transform: translateY(-4px);
+}
+
+.offer-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.offer-box {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(12px);
+  padding: 18px;
+  border-radius: 18px;
+  transition: 0.4s ease;
+}
+
+.offer-box:hover {
+  transform: translateY(-8px);
+  background: rgba(255,255,255,0.18);
+}
+
+.offer-box h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.offer-box p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* RIGHT */
+.sales-right {
+  display: flex;
+  justify-content: center;
+  animation: zoomIn 1s ease;
+}
+
+.hero-image-card {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.hero-image-card img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  transition: 0.5s ease;
+}
+
+.hero-image-card:hover img {
+  transform: scale(1.06);
+}
+
+.floating-sale-card {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+  background: #fff;
+  color: #111;
+  padding: 18px 22px;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  animation: floatCard 3s ease-in-out infinite;
+}
+
+.floating-sale-card span {
+  display: block;
+  font-size: 13px;
+  color: #ff4d2d;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.floating-sale-card h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.floating-sale-card p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* FEATURED */
+.featured-sale {
+  padding: 90px 8%;
+}
+
+.featured-text {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 40px;
+}
+
+.section-tag {
+  display: inline-block;
+  color: #ff4d2d;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.featured-text h2 {
+  font-size: 40px;
+  color: #111;
+  margin-bottom: 16px;
+}
+
+.featured-text p {
+  font-size: 17px;
+  line-height: 1.8;
+  color: #555;
+}
+
+.featured-slider {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+
+.featured-card {
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+  transform: scale(0.96);
+  opacity: 0.7;
+  transition: 0.5s ease;
+}
+
+.featured-card.active-card {
+  transform: scale(1.02);
+  opacity: 1;
+}
+
+.featured-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+.featured-card-content {
+  padding: 20px;
+}
+
+.featured-card-content h3 {
+  margin-bottom: 10px;
+  color: #111;
+}
+
+.featured-card-content p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+}
+
+.featured-card-content span {
+  display: inline-block;
+  margin-top: 12px;
+  color: #ff4d2d;
+  font-weight: 700;
+}
+
+/* PRODUCTS */
+.sales-products-section {
+  padding: 40px 8% 100px;
+}
+
+.section-heading {
+  text-align: center;
+  margin-bottom: 45px;
+}
+
+.section-heading h2 {
+  font-size: 38px;
+  margin: 10px 0;
+  color: #111;
+}
+
+.section-heading p {
+  color: #666;
+  font-size: 16px;
+}
+
+.sales-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.sales-card {
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 14px 35px rgba(0,0,0,0.08);
+  transition: 0.4s ease;
+}
+
+.sales-card:hover {
+  transform: translateY(-10px);
+}
+
+.sales-card-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.sales-card-image img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  transition: 0.5s ease;
+}
+
+.sales-card:hover .sales-card-image img {
+  transform: scale(1.08);
+}
+
+.discount-label {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #ff4d2d;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sales-card-body {
+  padding: 22px;
+}
+
+.sales-card-body h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #111;
+}
+
+.sales-card-body p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #666;
+  min-height: 50px;
+}
+
+.sales-price-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0 20px;
+}
+
+.new-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ff4d2d;
+}
+
+.old-price {
+  font-size: 15px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.sales-card-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.sales-card-buttons button {
+  flex: 1;
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.4s ease;
+}
+
+.sales-card-buttons button:hover {
+  transform: translateY(-3px);
+}
+
+.sales-card-buttons .buy-btn {
+  background: #ff4d2d;
+}
+
+/* ANIMATIONS */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(45px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes floatCard {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes pulseBadge {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 14px rgba(255,255,255,0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+  .sales-hero-content,
+  .featured-slider,
+  .sales-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .offer-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-left h1 {
+    font-size: 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sales-hero-content,
+  .featured-slider,
+  .sales-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-left h1 {
+    font-size: 34px;
+  }
+
+  .featured-text h2,
+  .section-heading h2 {
+    font-size: 30px;
+  }
+
+  .sales-hero {
+    padding: 40px 5%;
+  }
+
+  .featured-sale,
+  .sales-products-section {
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+
+  .sales-buttons {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
