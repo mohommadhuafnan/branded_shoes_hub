@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
-import { saleProducts } from '../../data/products'
+import { useShop } from '../../context/ShopContext'
 import hero from '../../assets/Poster3.png'
 import './Sales.css'
 
 function Sales() {
+  const { saleProducts } = useShop()
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
+    if (!saleProducts.length) return undefined
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % saleProducts.length)
     }, 2500)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [saleProducts.length])
 
   return (
     <div className="sales-page">
@@ -85,7 +87,7 @@ function Sales() {
               <div className="featured-card-content">
                 <h3>{item.name}</h3>
                 <p>{item.description}</p>
-                <span>{item.price}</span>
+                <span>LKR {Number(item.price || 0).toLocaleString()}</span>
               </div>
             </div>
           ))}
@@ -113,8 +115,8 @@ function Sales() {
                 <p>{product.description}</p>
 
                 <div className="sales-price-row">
-                  <span className="new-price">{product.price}</span>
-                  <span className="old-price">LKR 8,500</span>
+                  <span className="new-price">LKR {Number(product.price || 0).toLocaleString()}</span>
+                  <span className="old-price">LKR {Number(product.originalPrice || product.price || 0).toLocaleString()}</span>
                 </div>
 
                 <div className="sales-card-buttons">

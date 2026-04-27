@@ -4,7 +4,8 @@ import { useShop } from '../context/ShopContext'
 
 function ProductCard({ product }) {
   const { addToCart, favorites, toggleFavorite, setIsCheckoutOpen, setIsCartOpen } = useShop()
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0])
+  const safeSizes = product.sizes?.length ? product.sizes : ['40']
+  const [selectedSize, setSelectedSize] = useState(safeSizes[0])
   const isFavorite = favorites.includes(product.id)
 
   const handleBuyNow = () => {
@@ -48,7 +49,7 @@ function ProductCard({ product }) {
         <div className="size-row">
           <span>Size</span>
           <div className="size-options">
-            {product.sizes.map((size) => (
+            {safeSizes.map((size) => (
               <button
                 type="button"
                 key={size}

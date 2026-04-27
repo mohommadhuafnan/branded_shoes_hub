@@ -1,5 +1,5 @@
 import CatalogPage from '../../Components/CatalogPage'
-import { mensProducts } from '../../data/products'
+import { useShop } from '../../context/ShopContext'
 import hero1 from '../../assets/cal2.jpg'
 import hero2 from '../../assets/cal3.jpg'
 import hero3 from '../../assets/cal4.jpg'
@@ -7,6 +7,7 @@ import hero4 from '../../assets/cal5.jpg'
 import MensHero from '../../Components/MensHero'
 
 function Mens() {
+  const { mensProducts } = useShop()
   const mensSlides = [
     {
       image: hero1,

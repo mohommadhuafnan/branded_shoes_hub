@@ -1,6 +1,6 @@
 import CatalogPage from '../../Components/CatalogPage'
 import Brand from '../../Components/Brand'
-import { womensProducts } from '../../data/products'
+import { useShop } from '../../context/ShopContext'
 import hero1 from '../../assets/womens1.jpg'
 import hero2 from '../../assets/womens2.jpg'
 import hero3 from '../../assets/womens13.jpg'
@@ -9,6 +9,7 @@ import WomensHero from '../../Components/WomensHero'
 import './Womens.css'
 
 function Womens() {
+  const { womensProducts } = useShop()
   const womensSlides = [
     {
       image: hero1,

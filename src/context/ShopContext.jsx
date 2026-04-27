@@ -1,13 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { allProducts } from '../data/products'
+import { toAbsoluteImageUrl } from '../lib/api'
+import { ref, onValue, off, set, update } from 'firebase/database'
+import { db } from '../firebase'
 
 const ShopContext = createContext(null)
 
 const CART_KEY = 'shouse-cart'
 const FAVORITES_KEY = 'shouse-favorites'
+const SETTINGS_KEY = 'shouse-settings'
+const USER_DATA_PATH = 'users'
 
 export function ShopProvider({ children }) {
-  const [products] = useState(allProducts)
+  const [products, setProducts] = useState([])
+  const [content, setContent] = useState(null)
+  const [productsLoading, setProductsLoading] = useState(true)
+  const [productsError, setProductsError] = useState('')
   const [cartItems, setCartItems] = useState(() => {
     const saved = localStorage.getItem(CART_KEY)
     return saved ? JSON.parse(saved) : []
@@ -19,6 +26,159 @@ export function ShopProvider({ children }) {
   const [toast, setToast] = useState(null)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem(SETTINGS_KEY)
+    return saved
+      ? JSON.parse(saved)
+      : {
+          fullName: '',
+          email: '',
+          phone: '',
+          address: '',
+          preferredPayment: 'card',
+        }
+  })
+  const [activeUserToken, setActiveUserToken] = useState(() => {
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    if (user?.role !== 'user') return ''
+    return localStorage.getItem('token') || ''
+  })
+  const [isUserDataReady, setIsUserDataReady] = useState(false)
+
+  const mapProduct = (product) => {
+    const id = product._id || product.id
+    return {
+      ...product,
+      id,
+      image: toAbsoluteImageUrl(product.image),
+      sizes: product.sizes?.length ? product.sizes : ['40', '41', '42'],
+      price: Number(product.price || 0),
+      originalPrice: product.salePrice ? Number(product.price || 0) : null,
+      inStock: Number(product.stock || 0) > 0,
+      priceValue: Number(product.price || 0),
+      title: product.name,
+      desc: product.description,
+      badge: product.featured ? 'Featured' : Number(product.stock || 0) <= 5 ? 'Low Stock' : 'New'
+    }
+  }
+
+  const fetchProducts = () => {
+    setProductsLoading(true)
+    setProductsError('')
+    
+    const productsRef = ref(db, 'products')
+    const listener = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        const productList = Object.keys(data).map(key => ({
+          _id: key,
+          ...data[key]
+        })).filter(p => p.active !== false)
+        setProducts(productList.map(mapProduct))
+      } else {
+        setProducts([])
+      }
+      setProductsLoading(false)
+    }, (error) => {
+      console.error(error)
+      setProductsError('Unable to load products from server.')
+      setProductsLoading(false)
+    })
+    
+    return () => off(productsRef, 'value', listener)
+  }
+
+  const fetchPublicContent = () => {
+    const contentRef = ref(db, 'content')
+    const listener = onValue(contentRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        setContent(data)
+      }
+    }, () => {
+      setContent(null)
+    })
+    
+    return () => off(contentRef, 'value', listener)
+  }
+
+  useEffect(() => {
+    const unsubscribeProducts = fetchProducts()
+    const unsubscribeContent = fetchPublicContent()
+    
+    return () => {
+      unsubscribeProducts()
+      unsubscribeContent()
+    }
+  }, [])
+
+  useEffect(() => {
+    const resolveUserToken = () => {
+      const user = JSON.parse(localStorage.getItem('user') || 'null')
+      if (user?.role !== 'user') {
+        setActiveUserToken('')
+        return
+      }
+      setActiveUserToken(localStorage.getItem('token') || '')
+    }
+
+    resolveUserToken()
+    window.addEventListener('storage', resolveUserToken)
+    return () => window.removeEventListener('storage', resolveUserToken)
+  }, [])
+
+  useEffect(() => {
+    if (!activeUserToken) {
+      setIsUserDataReady(false)
+      return undefined
+    }
+
+    const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
+
+    const localCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
+    const localFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+    const localSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
+
+    const hasLocalData =
+      localCart.length > 0 ||
+      localFavorites.length > 0 ||
+      Object.keys(localSettings).length > 0
+
+    const listener = onValue(
+      userDataRef,
+      async (snapshot) => {
+        const remote = snapshot.val()
+
+        if (remote) {
+          setCartItems(Array.isArray(remote.cartItems) ? remote.cartItems : [])
+          setFavorites(Array.isArray(remote.favorites) ? remote.favorites : [])
+          if (remote.settings && typeof remote.settings === 'object') {
+            setSettings((current) => ({ ...current, ...remote.settings }))
+          }
+          setIsUserDataReady(true)
+          return
+        }
+
+        if (hasLocalData) {
+          await set(userDataRef, {
+            cartItems: localCart,
+            favorites: localFavorites,
+            settings: localSettings,
+            migratedAt: new Date().toISOString(),
+          })
+          setIsUserDataReady(true)
+          return
+        }
+
+        setIsUserDataReady(true)
+      },
+      () => {
+        setIsUserDataReady(false)
+      },
+    )
+
+    return () => off(userDataRef, 'value', listener)
+  }, [activeUserToken])
 
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(cartItems))
@@ -27,6 +187,35 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
   }, [favorites])
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  }, [settings])
+
+  useEffect(() => {
+    if (!activeUserToken || !isUserDataReady) return
+
+    const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
+    update(userDataRef, {
+      cartItems,
+      favorites,
+      settings,
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {
+      // Keeping local state resilient even if remote sync fails.
+    })
+  }, [activeUserToken, isUserDataReady, cartItems, favorites, settings])
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    if (user) {
+      setSettings((current) => ({
+        ...current,
+        fullName: current.fullName || user.name || '',
+        email: current.email || user.email || '',
+      }))
+    }
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -103,8 +292,25 @@ export function ShopProvider({ children }) {
     showToast('Payment successful', `Thank you ${customerName || 'customer'}! Your order was placed successfully.`)
   }
 
+  const womensProducts = useMemo(
+    () => products.filter((p) => p.category?.toLowerCase().includes('women')),
+    [products]
+  )
+  const mensProducts = useMemo(
+    () => products.filter((p) => p.category?.toLowerCase().includes('men') && !p.category?.toLowerCase().includes('women')),
+    [products]
+  )
+  const kidsProducts = useMemo(
+    () => products.filter((p) => p.category?.toLowerCase().includes('kid')),
+    [products]
+  )
+  const homeHighlights = useMemo(() => products.filter((p) => p.featured).slice(0, 12), [products])
+  const saleProducts = useMemo(() => products.filter((p) => p.originalPrice).slice(0, 12), [products])
+
   const value = {
     products,
+    setProducts,
+    fetchProducts,
     cartItems,
     favorites,
     toast,
@@ -119,6 +325,16 @@ export function ShopProvider({ children }) {
     removeFromCart,
     completeOrder,
     showToast,
+    productsLoading,
+    productsError,
+    womensProducts,
+    mensProducts,
+    kidsProducts,
+    homeHighlights,
+    saleProducts,
+    content,
+    settings,
+    setSettings,
   }
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>

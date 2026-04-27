@@ -1,8 +1,9 @@
 import CatalogPage from '../../Components/CatalogPage'
-import { kidsProducts } from '../../data/products'
+import { useShop } from '../../context/ShopContext'
 import hero from '../../assets/kids1.jpg'
 
 function Kids() {
+  const { kidsProducts } = useShop()
   return (
     <CatalogPage
       eyebrow="Kids Collection"

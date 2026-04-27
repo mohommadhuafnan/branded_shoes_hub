@@ -5,20 +5,26 @@ import ProductCard from '../../Components/ProductCard'
 import Brand from '../../Components/Brand'
 import Collection from '../../Components/Collection'
 import Details from '../../Components/Details'
-import { homeHighlights, saleProducts, shopBenefits } from '../../data/products'
+import { useShop } from '../../context/ShopContext'
 import banner1 from '../../assets/Poster1.png'
 import banner2 from '../../assets/Poster2.png'
 import banner3 from '../../assets/Poster3.png'
 import banner4 from '../../assets/poster4.png'
 
 function Home() {
+  const { homeHighlights, saleProducts, content } = useShop()
+  const shopBenefits = [
+    { title: 'Cash on Delivery', text: 'Flexible payment options for every district in Sri Lanka.' },
+    { title: 'Secure Checkout', text: 'Card, online banking, Koko, and wallet-ready checkout flow.' },
+    { title: 'Fast Delivery', text: 'Same-day dispatch for ready stock and tracked delivery updates.' },
+  ]
   const slides = useMemo(
     () => [
       {
         img: banner1,
-        title: 'New Season Drops',
-        desc: 'Fresh styles, limited stock. Grab your size now.',
-        tag: 'Up to 25% off',
+        title: content?.heroTitle || 'New Season Drops',
+        desc: content?.heroDescription || 'Fresh styles, limited stock. Grab your size now.',
+        tag: content?.heroTag || 'Up to 25% off',
         productId: 'poster-1',
       },
       {
@@ -43,7 +49,7 @@ function Home() {
         productId: 'poster-4',
       },
     ],
-    []
+    [content]
   )
 
   const [active, setActive] = useState(0)

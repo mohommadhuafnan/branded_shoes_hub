@@ -36,8 +36,8 @@ function CatalogPage({
     if (search.trim()) {
       filtered = filtered.filter(
         (product) =>
-          product.title?.toLowerCase().includes(search.toLowerCase()) ||
-          product.desc?.toLowerCase().includes(search.toLowerCase())
+          product.name?.toLowerCase().includes(search.toLowerCase()) ||
+          product.description?.toLowerCase().includes(search.toLowerCase())
       )
     }
 
@@ -54,17 +54,17 @@ function CatalogPage({
     }
 
     if (saleOnly) {
-      filtered = filtered.filter((product) => product.oldPrice)
+      filtered = filtered.filter((product) => product.originalPrice)
     }
 
     if (inStockOnly) {
-      filtered = filtered.filter((product) => product.inStock !== false)
+      filtered = filtered.filter((product) => Number(product.stock || 0) > 0)
     }
 
     if (priceSort === 'low-high') {
-      filtered.sort((a, b) => (a.priceValue || 0) - (b.priceValue || 0))
+      filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
     } else if (priceSort === 'high-low') {
-      filtered.sort((a, b) => (b.priceValue || 0) - (a.priceValue || 0))
+      filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
     }
 
     if (ratingSort === 'high-low') {

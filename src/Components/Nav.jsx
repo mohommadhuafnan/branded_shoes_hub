@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
-import { FaBars, FaHeart, FaSearch, FaShoppingCart, FaTimes } from 'react-icons/fa'
-import { NavLink } from 'react-router-dom'
+import { FaBars, FaHeart, FaSearch, FaShoppingCart, FaTimes, FaUser, FaChartLine } from 'react-icons/fa'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useShop } from '../context/ShopContext'
 import logo from '../assets/logo.png'
 
 function Nav() {
   const { cartSummary, favorites, setIsCartOpen } = useShop()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'))
+  const isAdmin = currentUser?.role === 'admin'
   const [hidden, setHidden] = useState(false)
   const [lastScroll, setLastScroll] = useState(0)
 
@@ -22,6 +26,20 @@ function Nav() {
   }, [lastScroll])
 
   const closeMenu = () => setMobileOpen(false)
+
+  useEffect(() => {
+    const onStorage = () => setCurrentUser(JSON.parse(localStorage.getItem('user') || 'null'))
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setCurrentUser(null)
+    setMenuOpen(false)
+    navigate('/login')
+  }
 
   const links = [
     { to: '/', label: 'Home' },
@@ -52,6 +70,35 @@ function Nav() {
         </div>
 
         <div className="nav-actions">
+          {isAdmin && (
+            <NavLink to="/admin" className="icon-btn" aria-label="Admin Dashboard" onClick={closeMenu}>
+              <FaChartLine />
+            </NavLink>
+          )}
+
+          {currentUser ? (
+            <div className="account-menu-wrap">
+              <button type="button" className="icon-btn" aria-label="Account Menu" onClick={() => setMenuOpen((prev) => !prev)}>
+                <FaUser />
+              </button>
+              {menuOpen && (
+                <div className="account-menu">
+                  <strong>{currentUser.name}</strong>
+                  <small>{currentUser.email}</small>
+                  <small className="role-pill">{currentUser.role}</small>
+                  {isAdmin && <button type="button" onClick={() => { setMenuOpen(false); navigate('/admin') }}>Admin Panel</button>}
+                  <button type="button" onClick={() => { setMenuOpen(false); navigate('/my-orders') }}>My Orders</button>
+                  <button type="button" onClick={() => { setMenuOpen(false); navigate('/settings') }}>Settings</button>
+                  <button type="button" className="logout" onClick={logout}>Logout</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <NavLink to="/login" className="icon-btn" aria-label="Account" onClick={closeMenu}>
+              <FaUser />
+            </NavLink>
+          )}
+
           <button type="button" className="icon-btn search-btn" aria-label="Search">
             <FaSearch />
           </button>

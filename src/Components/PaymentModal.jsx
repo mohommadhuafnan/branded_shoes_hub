@@ -1,25 +1,70 @@
-import { useState } from 'react'
-import { FaCheckCircle, FaCreditCard, FaMoneyBillWave, FaUniversity, FaTimes } from 'react-icons/fa'
+import { useEffect, useState } from 'react'
+import { FaCheckCircle, FaCreditCard, FaMoneyBillWave, FaUniversity, FaTimes, FaWallet } from 'react-icons/fa'
 import { useShop } from '../context/ShopContext'
+import { API_BASE, authHeaders } from '../lib/api'
 
 function PaymentModal() {
-  const { isCheckoutOpen, setIsCheckoutOpen, cartSummary, cartItems, completeOrder, showToast } = useShop()
+  const { isCheckoutOpen, setIsCheckoutOpen, cartSummary, cartItems, completeOrder, showToast, settings } = useShop()
   const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    address: '',
+    name: settings?.fullName || '',
+    phone: settings?.phone || '',
+    address: settings?.address || '',
     city: '',
-    method: 'card',
+    method: settings?.preferredPayment || 'card',
   })
 
-  const submitOrder = (event) => {
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      name: prev.name || settings?.fullName || '',
+      phone: prev.phone || settings?.phone || '',
+      address: prev.address || settings?.address || '',
+      method: settings?.preferredPayment || 'card',
+    }))
+  }, [settings?.preferredPayment, settings?.fullName, settings?.phone, settings?.address])
+
+  const submitOrder = async (event) => {
     event.preventDefault()
     if (!form.name || !form.phone || !form.address || !form.city) {
       showToast('Missing details', 'Please fill in your delivery information.', 'warning')
       return
     }
-    completeOrder(form.name)
-    setForm({ name: '', phone: '', address: '', city: '', method: 'card' })
+    try {
+      const userStr = localStorage.getItem('user')
+      const user = userStr ? JSON.parse(userStr) : {}
+      
+      const payload = {
+        customerName: form.name,
+        customerEmail: user.email || '',
+        customerPhone: form.phone,
+        address: form.address,
+        city: form.city,
+        paymentMethod: form.method,
+        totalPrice: cartSummary.total,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        items: cartItems.map((item) => ({
+          productId: item.id,
+          productName: item.name,
+          size: item.size,
+          quantity: item.qty,
+          price: item.price
+        }))
+      }
+
+      if (form.method === 'card') {
+        showToast('Notice', 'Stripe card payments are disabled in Firebase-only mode. Order saved as Pending.', 'info')
+      }
+
+      const { ref, push } = await import('firebase/database')
+      const { db } = await import('../firebase')
+      await push(ref(db, 'orders'), payload)
+
+      completeOrder(form.name)
+      setForm({ name: '', phone: '', address: '', city: '', method: 'card' })
+    } catch (error) {
+      showToast('Checkout failed', error.message, 'warning')
+    }
   }
 
   return (
@@ -57,6 +102,9 @@ function PaymentModal() {
                 </button>
                 <button type="button" className={form.method === 'bank' ? 'payment-pill active' : 'payment-pill'} onClick={() => setForm({ ...form, method: 'bank' })}>
                   <FaUniversity /> Bank Transfer
+                </button>
+                <button type="button" className={form.method === 'wallet' ? 'payment-pill active' : 'payment-pill'} onClick={() => setForm({ ...form, method: 'wallet' })}>
+                  <FaWallet /> Wallet / UPI
                 </button>
               </div>
             </div>
