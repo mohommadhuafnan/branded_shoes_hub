@@ -3,7 +3,7 @@ import { FaGoogle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import './Auth.css';
-import { API_BASE } from '../../lib/api';
+import { API_BASE, isDsqlBackend, dsqlUrl } from '../../lib/api';
 import { auth } from '../../firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -56,8 +56,8 @@ function Auth() {
 
     try {
       if (accountType === 'admin') {
-        // Keep the existing admin login against the custom backend
-        const response = await fetch(`${API_URL}/admin-login`, {
+        const loginUrl = isDsqlBackend() ? dsqlUrl('/api/admin-login') : `${API_URL}/admin-login`
+        const response = await fetch(loginUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -128,7 +128,9 @@ function Auth() {
       // Clean up Firebase error messages for the user
       let errorMsg = err.message;
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        errorMsg = 'Cannot reach admin server. Start backend API on port 5000 and try again.';
+        errorMsg = isDsqlBackend()
+          ? 'Cannot reach /api. Run `vercel dev` (default port 3000) so Vite can proxy /api, and ensure DSQL env vars are loaded.'
+          : 'Cannot reach admin server. Start backend API on port 5000 and try again.';
       }
       if (err.code === 'auth/email-already-in-use') errorMsg = 'Email is already in use.';
       if (err.code === 'auth/invalid-credential') errorMsg = 'Invalid email or password.';

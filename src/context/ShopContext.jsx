@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { toAbsoluteImageUrl } from '../lib/api'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { toAbsoluteImageUrl, isDsqlBackend, dsqlUrl, authHeaders } from '../lib/api'
 import { ref, onValue, off, set, update } from 'firebase/database'
 import { db } from '../firebase'
 
@@ -50,6 +50,7 @@ export function ShopProvider({ children }) {
     return {
       ...product,
       id,
+      name: product.name,
       image: toAbsoluteImageUrl(product.image),
       sizes: product.sizes?.length ? product.sizes : ['40', '41', '42'],
       price: Number(product.price || 0),
@@ -58,58 +59,114 @@ export function ShopProvider({ children }) {
       priceValue: Number(product.price || 0),
       title: product.name,
       desc: product.description,
-      badge: product.featured ? 'Featured' : Number(product.stock || 0) <= 5 ? 'Low Stock' : 'New'
+      badge: product.featured ? 'Featured' : Number(product.stock || 0) <= 5 ? 'Low Stock' : 'New',
     }
   }
 
-  const fetchProducts = () => {
+  const loadProductsDsql = useCallback(async () => {
     setProductsLoading(true)
     setProductsError('')
-    
+    try {
+      const r = await fetch(dsqlUrl('/api/products?limit=200'))
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(j.message || `Products request failed (${r.status})`)
+      const list = (j.data || []).map(mapProduct)
+      setProducts(list)
+    } catch (e) {
+      console.error(e)
+      setProductsError(e.message || 'Unable to load products.')
+      setProducts([])
+    } finally {
+      setProductsLoading(false)
+    }
+  }, [])
+
+  const subscribeProductsFirebase = () => {
+    setProductsLoading(true)
+    setProductsError('')
+
     const productsRef = ref(db, 'products')
-    const listener = onValue(productsRef, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        const productList = Object.keys(data).map(key => ({
-          _id: key,
-          ...data[key]
-        })).filter(p => p.active !== false)
-        setProducts(productList.map(mapProduct))
-      } else {
-        setProducts([])
-      }
-      setProductsLoading(false)
-    }, (error) => {
-      console.error(error)
-      setProductsError('Unable to load products from server.')
-      setProductsLoading(false)
-    })
-    
+    const listener = onValue(
+      productsRef,
+      (snapshot) => {
+        const data = snapshot.val()
+        if (data) {
+          const productList = Object.keys(data)
+            .map((key) => ({
+              _id: key,
+              ...data[key],
+            }))
+            .filter((p) => p.active !== false)
+          setProducts(productList.map(mapProduct))
+        } else {
+          setProducts([])
+        }
+        setProductsLoading(false)
+      },
+      (error) => {
+        console.error(error)
+        setProductsError('Unable to load products from server.')
+        setProductsLoading(false)
+      },
+    )
+
     return () => off(productsRef, 'value', listener)
   }
 
-  const fetchPublicContent = () => {
+  const fetchProducts = () => {
+    if (isDsqlBackend()) {
+      loadProductsDsql()
+      return () => {}
+    }
+    return subscribeProductsFirebase()
+  }
+
+  const subscribeContentFirebase = () => {
     const contentRef = ref(db, 'content')
-    const listener = onValue(contentRef, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        setContent(data)
-      }
-    }, () => {
-      setContent(null)
-    })
-    
+    const listener = onValue(
+      contentRef,
+      (snapshot) => {
+        const data = snapshot.val()
+        if (data) {
+          setContent(data)
+        }
+      },
+      () => {
+        setContent(null)
+      },
+    )
+
     return () => off(contentRef, 'value', listener)
   }
 
   useEffect(() => {
-    const unsubscribeProducts = fetchProducts()
-    const unsubscribeContent = fetchPublicContent()
-    
-    return () => {
-      unsubscribeProducts()
-      unsubscribeContent()
+    if (isDsqlBackend()) {
+      loadProductsDsql()
+      const id = setInterval(loadProductsDsql, 60000)
+      return () => clearInterval(id)
     }
+    return subscribeProductsFirebase()
+  }, [loadProductsDsql])
+
+  useEffect(() => {
+    if (isDsqlBackend()) {
+      let cancelled = false
+      ;(async () => {
+        try {
+          const r = await fetch(dsqlUrl('/api/content'))
+          const j = await r.json().catch(() => ({}))
+          if (cancelled) return
+          if (r.ok && j && typeof j === 'object' && Object.keys(j).length) setContent(j)
+          else setContent(null)
+        } catch {
+          if (!cancelled) setContent(null)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
+    return subscribeContentFirebase()
   }, [])
 
   useEffect(() => {
@@ -131,6 +188,67 @@ export function ShopProvider({ children }) {
     if (!activeUserToken) {
       setIsUserDataReady(false)
       return undefined
+    }
+
+    if (isDsqlBackend() && activeUserToken.includes('.')) {
+      setIsUserDataReady(true)
+      return undefined
+    }
+
+    if (isDsqlBackend() && !activeUserToken.includes('.')) {
+      let cancelled = false
+      const localCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
+      const localFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+      const localSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
+      const hasLocalData =
+        localCart.length > 0 ||
+        localFavorites.length > 0 ||
+        Object.keys(localSettings).length > 0
+
+      ;(async () => {
+        try {
+          const r = await fetch(dsqlUrl('/api/user-state'), { headers: { ...authHeaders() } })
+          const remote = r.ok ? await r.json().catch(() => null) : null
+          if (cancelled) return
+
+          const hasRemote =
+            remote &&
+            ((Array.isArray(remote.cartItems) && remote.cartItems.length > 0) ||
+              (Array.isArray(remote.favorites) && remote.favorites.length > 0) ||
+              (remote.settings && Object.keys(remote.settings).length > 0))
+
+          if (hasRemote) {
+            setCartItems(Array.isArray(remote.cartItems) ? remote.cartItems : [])
+            setFavorites(Array.isArray(remote.favorites) ? remote.favorites : [])
+            if (remote.settings && typeof remote.settings === 'object') {
+              setSettings((current) => ({ ...current, ...remote.settings }))
+            }
+          } else if (hasLocalData) {
+            setCartItems(localCart)
+            setFavorites(localFavorites)
+            if (Object.keys(localSettings).length) {
+              setSettings((current) => ({ ...current, ...localSettings }))
+            }
+            await fetch(dsqlUrl('/api/user-state'), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', ...authHeaders() },
+              body: JSON.stringify({
+                cartItems: localCart,
+                favorites: localFavorites,
+                settings: { ...localSettings },
+              }),
+            })
+          }
+        } catch (e) {
+          console.error(e)
+        } finally {
+          if (!cancelled) setIsUserDataReady(true)
+        }
+      })()
+
+      return () => {
+        cancelled = true
+      }
     }
 
     const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
@@ -195,15 +313,24 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     if (!activeUserToken || !isUserDataReady) return
 
+    if (isDsqlBackend() && !activeUserToken.includes('.')) {
+      const t = setTimeout(() => {
+        fetch(dsqlUrl('/api/user-state'), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ cartItems, favorites, settings }),
+        }).catch(() => {})
+      }, 400)
+      return () => clearTimeout(t)
+    }
+
     const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
     update(userDataRef, {
       cartItems,
       favorites,
       settings,
       updatedAt: new Date().toISOString(),
-    }).catch(() => {
-      // Keeping local state resilient even if remote sync fails.
-    })
+    }).catch(() => {})
   }, [activeUserToken, isUserDataReady, cartItems, favorites, settings])
 
   useEffect(() => {
@@ -232,9 +359,7 @@ export function ShopProvider({ children }) {
       const existing = current.find((item) => item.id === product.id && item.size === size)
       if (existing) {
         return current.map((item) =>
-          item.id === product.id && item.size === size
-            ? { ...item, qty: item.qty + 1 }
-            : item,
+          item.id === product.id && item.size === size ? { ...item, qty: item.qty + 1 } : item,
         )
       }
       return [...current, { ...product, size, qty: 1 }]
@@ -262,9 +387,7 @@ export function ShopProvider({ children }) {
       return
     }
     setCartItems((current) =>
-      current.map((item) =>
-        item.id === productId && item.size === size ? { ...item, qty } : item,
-      ),
+      current.map((item) => (item.id === productId && item.size === size ? { ...item, qty } : item)),
     )
   }
 
@@ -294,15 +417,18 @@ export function ShopProvider({ children }) {
 
   const womensProducts = useMemo(
     () => products.filter((p) => p.category?.toLowerCase().includes('women')),
-    [products]
+    [products],
   )
   const mensProducts = useMemo(
-    () => products.filter((p) => p.category?.toLowerCase().includes('men') && !p.category?.toLowerCase().includes('women')),
-    [products]
+    () =>
+      products.filter(
+        (p) => p.category?.toLowerCase().includes('men') && !p.category?.toLowerCase().includes('women'),
+      ),
+    [products],
   )
   const kidsProducts = useMemo(
     () => products.filter((p) => p.category?.toLowerCase().includes('kid')),
-    [products]
+    [products],
   )
   const homeHighlights = useMemo(() => products.filter((p) => p.featured).slice(0, 12), [products])
   const saleProducts = useMemo(() => products.filter((p) => p.originalPrice).slice(0, 12), [products])

@@ -4,11 +4,13 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// Generate JWT token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
+// Generate JWT token (include role so Vercel serverless routes can authorize admin without Mongo)
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: String(user._id), role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' }
+  );
 };
 
 // @route   POST /api/auth/register
@@ -38,7 +40,7 @@ router.post('/register', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id)
+      token: generateToken(user)
     });
   } catch (err) {
     console.error('Registration Error:', err);
@@ -74,7 +76,7 @@ router.post('/login', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id)
+      token: generateToken(user)
     });
   } catch (err) {
     console.error('Login Error:', err);
@@ -104,7 +106,7 @@ router.post('/admin-login', async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id)
+      token: generateToken(user)
     });
   } catch (err) {
     console.error('Admin Login Error:', err);
