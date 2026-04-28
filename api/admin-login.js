@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import { query } from '../lib/dsql.js';
 import { getJsonBody } from '../lib/httpBody.js';
 
+const getJwtSecret = () =>
+  process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'local-dev-jwt-secret-change-me');
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   if (req.method !== 'POST') {
@@ -10,7 +13,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  if (!process.env.JWT_SECRET) {
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) {
     return res.status(500).json({ message: 'Server misconfiguration: JWT_SECRET missing' });
   }
 
@@ -38,7 +42,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: String(user.id), role: 'admin' }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: String(user.id), role: 'admin' }, jwtSecret, {
       expiresIn: '30d',
     });
 

@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { getRedirectResult } from 'firebase/auth'
+import { auth } from './firebase'
 import Nav from './Components/Nav'
 import Footer from './Components/Footer'
 import Home from './Packages/Home/Home'
@@ -17,7 +19,7 @@ import PaymentModal from './Components/PaymentModal'
 import WhatsAppFloat from './Components/WhatsAppFloat'
 import { useShop } from './context/ShopContext'
 import { useScrollAnimations } from './hooks/useScrollAnimations'
-import { API_BASE, authHeaders } from './lib/api'
+import { API_BASE, authHeaders, isDsqlBackend, dsqlUrl } from './lib/api'
 
 function Toast() {
   const { toast } = useShop()
@@ -34,6 +36,31 @@ function Toast() {
 function App() {
   useScrollAnimations()
   const { completeOrder, showToast } = useShop()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+    getRedirectResult(auth)
+      .then((result) => {
+        if (cancelled || !result?.user) return
+        localStorage.setItem('token', result.user.uid)
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            name: result.user.displayName || 'User',
+            email: result.user.email,
+            role: 'user',
+          }),
+        )
+        window.dispatchEvent(new Event('storage'))
+        showToast('Success', `Welcome, ${result.user.displayName || 'User'}!`, 'success')
+        navigate('/')
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [navigate, showToast])
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -41,7 +68,8 @@ function App() {
       const pendingOrder = localStorage.getItem('pendingOrder');
       if (pendingOrder) {
         const orderData = JSON.parse(pendingOrder);
-        fetch(`${API_BASE}/orders`, {
+        const orderUrl = isDsqlBackend() ? dsqlUrl('/api/orders') : `${API_BASE}/orders`
+        fetch(orderUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: pendingOrder

@@ -2,6 +2,9 @@ import bcrypt from 'bcryptjs';
 import { query } from '../lib/dsql.js';
 import { getJsonBody } from '../lib/httpBody.js';
 
+const getSetupKey = () =>
+  process.env.ADMIN_SETUP_KEY || (process.env.NODE_ENV === 'production' ? '' : '1234');
+
 /**
  * One-time or controlled bootstrap: creates an admin in app_users.
  * Requires ADMIN_SETUP_KEY (set in Vercel env, then rotate/remove after onboarding).
@@ -13,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const setupKey = process.env.ADMIN_SETUP_KEY;
+  const setupKey = getSetupKey();
   if (!setupKey) {
     return res.status(503).json({ message: 'ADMIN_SETUP_KEY is not configured on the server.' });
   }

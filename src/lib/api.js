@@ -1,8 +1,17 @@
 /** Express/Mongo API (admin login, uploads, legacy). */
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
-/** When `VITE_DATA_BACKEND=dsql`, catalog/content/orders/user-state use Vercel `/api` (Aurora DSQL). */
-export const isDsqlBackend = () => String(import.meta.env.VITE_DATA_BACKEND || '').toLowerCase() === 'dsql'
+/** When true, catalog/content/orders/admin use Vercel `/api` (Aurora DSQL on AWS). */
+export const isDsqlBackend = () => {
+  const raw = String(import.meta.env.VITE_DATA_BACKEND || '')
+    .trim()
+    .toLowerCase()
+  if (raw === 'firebase' || raw === 'mongo' || raw === 'legacy' || raw === 'false' || raw === '0')
+    return false
+  if (raw === 'dsql' || raw === 'true' || raw === '1') return true
+  // Production builds default to DSQL so deployed sites use AWS without extra env.
+  return import.meta.env.PROD === true
+}
 
 /** Prefix for DSQL serverless routes (`/api/products`, etc.). Same-origin on Vercel, or full URL. */
 export const dsqlApiPrefix = () => {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import './Auth.css';
 import { API_BASE, isDsqlBackend, dsqlUrl } from '../../lib/api';
+import { formatFirebaseAuthError } from '../../lib/firebaseAuthErrors';
 import { auth } from '../../firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -13,7 +14,8 @@ import {
   signOut,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 
 const API_URL = `${API_BASE}/auth`;
@@ -49,6 +51,14 @@ function Auth() {
     setFormData({ name: '', email: '', password: '' });
   };
 
+  const safeJson = async (response) => {
+    try {
+      return await response.json();
+    } catch {
+      return {};
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -63,7 +73,7 @@ function Auth() {
           body: JSON.stringify(formData)
         });
 
-        const data = await response.json();
+        const data = await safeJson(response);
 
         if (!response.ok) {
           throw new Error(data.message || 'Something went wrong');
@@ -125,21 +135,29 @@ function Auth() {
       }
 
     } catch (err) {
-      // Clean up Firebase error messages for the user
-      let errorMsg = err.message;
+      let errorMsg = formatFirebaseAuthError(err) || err.message;
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
         errorMsg = isDsqlBackend()
-          ? 'Cannot reach /api. Run `vercel dev` (default port 3000) so Vite can proxy /api, and ensure DSQL env vars are loaded.'
-          : 'Cannot reach admin server. Start backend API on port 5000 and try again.';
+          ? 'Cannot reach /api. Run `npm run dev:full` in the project root, then open http://localhost:3000.'
+          : 'Cannot reach the admin API. If you use Aurora DSQL: add VITE_DATA_BACKEND=dsql to .env.local in the project root, restart `npm run dev`, run `vercel dev` on port 3000, then try again. If you use Mongo/Express instead: start the backend on port 5000.';
       }
-      if (err.code === 'auth/email-already-in-use') errorMsg = 'Email is already in use.';
-      if (err.code === 'auth/invalid-credential') errorMsg = 'Invalid email or password.';
-      if (err.code === 'auth/user-not-found') errorMsg = 'No user found with this email.';
       
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySignedInUser = (user) => {
+    localStorage.setItem('token', user.uid);
+    localStorage.setItem('user', JSON.stringify({
+      name: user.displayName || 'User',
+      email: user.email,
+      role: 'user',
+    }));
+    window.dispatchEvent(new Event('storage'));
+    if (showToast) showToast('Success', `Welcome, ${user.displayName || 'User'}!`, 'success');
+    navigate('/');
   };
 
   const handleGoogleSignIn = async () => {
@@ -148,26 +166,29 @@ function Auth() {
     
     try {
       const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const user = userCredential.user;
-      
-      // Successful Google login
-      localStorage.setItem('token', user.uid);
-      localStorage.setItem('user', JSON.stringify({ 
-         name: user.displayName || 'User', 
-         email: user.email, 
-         role: 'user' 
-      }));
-      window.dispatchEvent(new Event('storage'));
-      
-      if (showToast) showToast('Success', `Welcome, ${user.displayName || 'User'}!`, 'success');
-      navigate('/');
-      
-    } catch (err) {
-      // Handle Google Sign-in Errors
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setMessage({ type: 'error', text: err.message });
+      provider.addScope('profile');
+      provider.addScope('email');
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      try {
+        const userCredential = await signInWithPopup(auth, provider);
+        applySignedInUser(userCredential.user);
+      } catch (popupErr) {
+        if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
+          return;
+        }
+        if (
+          popupErr.code === 'auth/popup-blocked' ||
+          popupErr.code === 'auth/operation-not-supported-in-this-environment'
+        ) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw popupErr;
       }
+    } catch (err) {
+      const text = formatFirebaseAuthError(err);
+      if (text) setMessage({ type: 'error', text });
     } finally {
       setLoading(false);
     }

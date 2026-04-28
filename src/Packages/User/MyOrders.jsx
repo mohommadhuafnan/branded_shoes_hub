@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE, authHeaders } from '../../lib/api';
+import { API_BASE, authHeaders, isDsqlBackend, dsqlUrl } from '../../lib/api';
 import './MyOrders.css';
 import { FaBox, FaTruck, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { useShop } from '../../context/ShopContext';
@@ -15,12 +15,15 @@ function MyOrders() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`${API_BASE}/orders/myorders`, {
+      const url = isDsqlBackend()
+        ? dsqlUrl('/api/user-orders')
+        : `${API_BASE}/orders/myorders`
+      const response = await fetch(url, {
         headers: authHeaders(),
       });
       if (!response.ok) throw new Error('Failed to fetch orders');
       const data = await response.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       showToast('Error', error.message, 'warning');
     } finally {
@@ -52,7 +55,7 @@ function MyOrders() {
               <div key={order._id} className="order-card">
                 <div className="order-header">
                   <div>
-                    <span className="order-id">Order #{order._id.slice(-6)}</span>
+                    <span className="order-id">Order #{String(order._id || order.id || '').slice(-6)}</span>
                     <span className="order-date">{new Date(order.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="order-status-badge">
