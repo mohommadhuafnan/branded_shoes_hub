@@ -137,7 +137,7 @@ function Auth() {
     } catch (err) {
       let errorMsg = formatFirebaseAuthError(err) || err.message;
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        errorMsg = 'Cannot reach the admin API. Start backend server on port 5000 and verify VITE_API_URL.';
+        errorMsg = 'Cannot reach the admin API. Check that your backend is deployed/running and VITE_API_URL points to it.';
       }
       
       setMessage({ type: 'error', text: errorMsg });

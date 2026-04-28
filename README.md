@@ -1,16 +1,75 @@
-# React + Vite
+# Shoes Hub Deployment Guide
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project has two parts:
+- Frontend: React + Vite (can be hosted on Vercel)
+- Backend: Express + MongoDB (must be hosted separately for 24/7 uptime)
 
-Currently, two official plugins are available:
+If your backend runs only on your local PC, your public website will stop working when your PC is off.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 1) Run Locally
 
-## React Compiler
+### Frontend
+1. Install dependencies:
+   - `npm install`
+2. Create `.env.local` in project root:
+   - `VITE_API_URL=http://localhost:5000/api`
+3. Start frontend:
+   - `npm run dev`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Backend
+1. Open a second terminal:
+   - `cd backend`
+   - `npm install`
+2. Create `backend/.env`:
+   - `MONGODB_URI=your_mongodb_connection_string`
+   - `JWT_SECRET=your_long_random_secret`
+   - `ADMIN_SETUP_KEY=your_long_random_secret`
+   - `CLIENT_ORIGIN=http://localhost:5173`
+   - `PORT=5000`
+3. Start backend:
+   - `npm run dev`
 
-## Expanding the ESLint configuration
+## 2) Production (24/7) Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+You need both frontend and backend hosted online.
+
+### A. Host backend (Render/Railway/EC2/etc.)
+Deploy the `backend` folder as a Node service and set:
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `ADMIN_SETUP_KEY`
+- `CLIENT_ORIGIN=https://your-vercel-domain.vercel.app`
+
+After deploy, note your backend URL, for example:
+- `https://shoes-hub-api.onrender.com`
+
+Test it:
+- `https://shoes-hub-api.onrender.com/api/health`
+
+### B. Host frontend (Vercel)
+In Vercel project environment variables set:
+- `VITE_API_URL=https://shoes-hub-api.onrender.com/api`
+
+Then redeploy frontend.
+
+## 3) Why products were not visible
+
+Common causes:
+- Frontend used `localhost` API URL in production.
+- Backend was running only on local machine.
+- Uploaded product images were saved as `/uploads/...` but backend host was not reachable publicly.
+
+This project now normalizes relative image paths using the configured API host, so `/uploads/...` can render correctly when backend is hosted.
+
+## 4) Important note about image uploads
+
+Current uploads are saved on backend disk (`backend/uploads`).
+On many cloud hosts, local disk is temporary. For reliable production, move images to cloud storage (Cloudinary, S3, Supabase Storage, etc.).
+
+## 5) Quick checklist
+
+- Backend `api/health` works online.
+- `VITE_API_URL` points to backend online URL.
+- MongoDB is cloud-hosted (MongoDB Atlas recommended).
+- Frontend and backend CORS origin values are correct.
+- Admin adds product and product appears immediately on public site.

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './Admin.css';
 import { useShop } from '../../context/ShopContext';
-import { API_BASE, authHeaders } from '../../lib/api';
+import { API_BASE, authHeaders, toAbsoluteImageUrl } from '../../lib/api';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -337,7 +337,7 @@ function AdminDashboard() {
                 <tr key={product._id}>
                   <td>
                     {product.image ? 
-                      <img src={product.image} className="product-img-thumb" alt={product.name} /> 
+                      <img src={toAbsoluteImageUrl(product.image)} className="product-img-thumb" alt={product.name} /> 
                       : <div className="product-img-thumb" />}
                   </td>
                   <td>{product.name}</td>
@@ -484,12 +484,12 @@ function AdminDashboard() {
                 </div>
                 <div className="form-group">
                   <label>Image URL</label>
-                  <input name="image" value={formData.image} onChange={handleInputChange} placeholder="/uploads/..." />
+                  <input name="image" value={formData.image} onChange={handleInputChange} placeholder="https://... or /uploads/..." />
                   <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0])} />
                   {uploadingImage && <small>Uploading image...</small>}
                   {!!formData.image && (
                     <img
-                      src={formData.image}
+                      src={toAbsoluteImageUrl(formData.image)}
                       alt="Product preview"
                       className="admin-image-preview"
                     />
