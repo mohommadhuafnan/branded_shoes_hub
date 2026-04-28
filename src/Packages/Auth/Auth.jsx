@@ -3,7 +3,7 @@ import { FaGoogle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../../context/ShopContext';
 import './Auth.css';
-import { API_BASE, isDsqlBackend, dsqlUrl } from '../../lib/api';
+import { API_BASE } from '../../lib/api';
 import { formatFirebaseAuthError } from '../../lib/firebaseAuthErrors';
 import { auth } from '../../firebase';
 import { 
@@ -66,7 +66,7 @@ function Auth() {
 
     try {
       if (accountType === 'admin') {
-        const loginUrl = isDsqlBackend() ? dsqlUrl('/api/admin-login') : `${API_URL}/admin-login`
+        const loginUrl = `${API_URL}/admin-login`
         const response = await fetch(loginUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -137,9 +137,7 @@ function Auth() {
     } catch (err) {
       let errorMsg = formatFirebaseAuthError(err) || err.message;
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        errorMsg = isDsqlBackend()
-          ? 'Cannot reach /api. Run `npm run dev:full` in the project root, then open http://localhost:3000.'
-          : 'Cannot reach the admin API. If you use Aurora DSQL: add VITE_DATA_BACKEND=dsql to .env.local in the project root, restart `npm run dev`, run `vercel dev` on port 3000, then try again. If you use Mongo/Express instead: start the backend on port 5000.';
+        errorMsg = 'Cannot reach the admin API. Start backend server on port 5000 and verify VITE_API_URL.';
       }
       
       setMessage({ type: 'error', text: errorMsg });

@@ -1,8 +1,10 @@
 const { MongoClient } = require('mongodb');
 
-// Try with mongodb+srv first, since Node native driver might handle SRV better than Mongoose?
-// No, the DNS error was from Node. Let's try the direct mongodb:// string without replicaSet name
-const uri = "mongodb://mohommadhuafnan756_db_user:Afnr2424@ac-lvycnv1-shard-00-00.evi0g3u.mongodb.net:27017,ac-lvycnv1-shard-00-01.evi0g3u.mongodb.net:27017,ac-lvycnv1-shard-00-02.evi0g3u.mongodb.net:27017/shoesHubDB?ssl=true&authSource=admin&retryWrites=true&w=majority";
+const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!uri) {
+  console.error("Missing MONGODB_URI (or legacy MONGO_URI)");
+  process.exit(1);
+}
 
 async function run() {
   console.log("Connecting...");
@@ -23,7 +25,5 @@ async function run() {
     await client.close();
   }
 }
-
-run();
 
 run();

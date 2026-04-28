@@ -4,7 +4,8 @@ import { loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const proxyTarget = env.VITE_DSQL_API_PREFIX || 'http://127.0.0.1:3000'
+  const apiBase = (env.VITE_API_URL || 'http://127.0.0.1:5000/api').replace(/\/$/, '')
+  const proxyTarget = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase
 
   return {
     base: '/',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE, authHeaders, isDsqlBackend, dsqlUrl } from '../../lib/api';
+import { API_BASE, authHeaders } from '../../lib/api';
 import './MyOrders.css';
 import { FaBox, FaTruck, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { useShop } from '../../context/ShopContext';
@@ -15,9 +15,7 @@ function MyOrders() {
 
   const fetchOrders = async () => {
     try {
-      const url = isDsqlBackend()
-        ? dsqlUrl('/api/user-orders')
-        : `${API_BASE}/orders/myorders`
+      const url = `${API_BASE}/orders/myorders`
       const response = await fetch(url, {
         headers: authHeaders(),
       });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FaCheckCircle, FaCreditCard, FaMoneyBillWave, FaUniversity, FaTimes, FaWallet } from 'react-icons/fa'
 import { useShop } from '../context/ShopContext'
-import { isDsqlBackend, dsqlUrl } from '../lib/api'
+import { API_BASE, authHeaders } from '../lib/api'
 
 function PaymentModal() {
   const { isCheckoutOpen, setIsCheckoutOpen, cartSummary, cartItems, completeOrder, showToast, settings } = useShop()
@@ -56,23 +56,13 @@ function PaymentModal() {
         showToast('Notice', 'Stripe card payments are disabled for demo checkout. Order saved as Pending.', 'info')
       }
 
-      if (isDsqlBackend()) {
-        const uid = localStorage.getItem('token') || ''
-        const res = await fetch(dsqlUrl('/api/orders'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...payload,
-            userId: uid && !uid.includes('.') ? uid : undefined,
-          }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data.message || 'Order failed')
-      } else {
-        const { ref, push } = await import('firebase/database')
-        const { db } = await import('../firebase')
-        await push(ref(db, 'orders'), payload)
-      }
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || 'Order failed')
 
       completeOrder(form.name)
       setForm({ name: '', phone: '', address: '', city: '', method: 'card' })

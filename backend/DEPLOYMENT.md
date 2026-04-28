@@ -1,7 +1,7 @@
 # Backend Deployment Checklist
 
 ## Environment Variables
-- `MONGO_URI`
+- `MONGODB_URI` (preferred) or `MONGO_URI` (legacy)
 - `JWT_SECRET`
 - `ADMIN_SETUP_KEY`
 - `CLIENT_ORIGIN`

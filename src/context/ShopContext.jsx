@@ -1,14 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
-import { toAbsoluteImageUrl, isDsqlBackend, dsqlUrl, authHeaders } from '../lib/api'
-import { ref, onValue, off, set, update } from 'firebase/database'
-import { db } from '../firebase'
+import { API_BASE, toAbsoluteImageUrl } from '../lib/api'
 
 const ShopContext = createContext(null)
 
 const CART_KEY = 'shouse-cart'
 const FAVORITES_KEY = 'shouse-favorites'
 const SETTINGS_KEY = 'shouse-settings'
-const USER_DATA_PATH = 'users'
 
 export function ShopProvider({ children }) {
   const [products, setProducts] = useState([])
@@ -38,13 +35,6 @@ export function ShopProvider({ children }) {
           preferredPayment: 'card',
         }
   })
-  const [activeUserToken, setActiveUserToken] = useState(() => {
-    const user = JSON.parse(localStorage.getItem('user') || 'null')
-    if (user?.role !== 'user') return ''
-    return localStorage.getItem('token') || ''
-  })
-  const [isUserDataReady, setIsUserDataReady] = useState(false)
-
   const mapProduct = (product) => {
     const id = product._id || product.id
     return {
@@ -63,11 +53,11 @@ export function ShopProvider({ children }) {
     }
   }
 
-  const loadProductsDsql = useCallback(async () => {
+  const loadProducts = useCallback(async () => {
     setProductsLoading(true)
     setProductsError('')
     try {
-      const r = await fetch(dsqlUrl('/api/products?limit=200'))
+      const r = await fetch(`${API_BASE}/products?limit=200`)
       const j = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(j.message || `Products request failed (${r.status})`)
       const list = (j.data || []).map(mapProduct)
@@ -79,224 +69,33 @@ export function ShopProvider({ children }) {
     } finally {
       setProductsLoading(false)
     }
-  }, [])
+  }, [API_BASE])
 
-  const subscribeProductsFirebase = () => {
-    setProductsLoading(true)
-    setProductsError('')
-
-    const productsRef = ref(db, 'products')
-    const listener = onValue(
-      productsRef,
-      (snapshot) => {
-        const data = snapshot.val()
-        if (data) {
-          const productList = Object.keys(data)
-            .map((key) => ({
-              _id: key,
-              ...data[key],
-            }))
-            .filter((p) => p.active !== false)
-          setProducts(productList.map(mapProduct))
-        } else {
-          setProducts([])
-        }
-        setProductsLoading(false)
-      },
-      (error) => {
-        console.error(error)
-        setProductsError('Unable to load products from server.')
-        setProductsLoading(false)
-      },
-    )
-
-    return () => off(productsRef, 'value', listener)
-  }
-
-  const fetchProducts = () => {
-    if (isDsqlBackend()) {
-      loadProductsDsql()
-      return () => {}
-    }
-    return subscribeProductsFirebase()
-  }
-
-  const subscribeContentFirebase = () => {
-    const contentRef = ref(db, 'content')
-    const listener = onValue(
-      contentRef,
-      (snapshot) => {
-        const data = snapshot.val()
-        if (data) {
-          setContent(data)
-        }
-      },
-      () => {
-        setContent(null)
-      },
-    )
-
-    return () => off(contentRef, 'value', listener)
-  }
+  const fetchProducts = () => loadProducts()
 
   useEffect(() => {
-    if (isDsqlBackend()) {
-      loadProductsDsql()
-      const id = setInterval(loadProductsDsql, 60000)
-      return () => clearInterval(id)
-    }
-    return subscribeProductsFirebase()
-  }, [loadProductsDsql])
+    loadProducts()
+    const id = setInterval(loadProducts, 60000)
+    return () => clearInterval(id)
+  }, [loadProducts])
 
   useEffect(() => {
-    if (isDsqlBackend()) {
-      let cancelled = false
-      ;(async () => {
-        try {
-          const r = await fetch(dsqlUrl('/api/content'))
-          const j = await r.json().catch(() => ({}))
-          if (cancelled) return
-          if (r.ok && j && typeof j === 'object' && Object.keys(j).length) setContent(j)
-          else setContent(null)
-        } catch {
-          if (!cancelled) setContent(null)
-        }
-      })()
-      return () => {
-        cancelled = true
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/content`)
+        const j = await r.json().catch(() => ({}))
+        if (cancelled) return
+        if (r.ok && j && typeof j === 'object' && Object.keys(j).length) setContent(j)
+        else setContent(null)
+      } catch {
+        if (!cancelled) setContent(null)
       }
+    })()
+    return () => {
+      cancelled = true
     }
-    return subscribeContentFirebase()
-  }, [])
-
-  useEffect(() => {
-    const resolveUserToken = () => {
-      const user = JSON.parse(localStorage.getItem('user') || 'null')
-      if (user?.role !== 'user') {
-        setActiveUserToken('')
-        return
-      }
-      setActiveUserToken(localStorage.getItem('token') || '')
-    }
-
-    resolveUserToken()
-    window.addEventListener('storage', resolveUserToken)
-    return () => window.removeEventListener('storage', resolveUserToken)
-  }, [])
-
-  useEffect(() => {
-    if (!activeUserToken) {
-      setIsUserDataReady(false)
-      return undefined
-    }
-
-    if (isDsqlBackend() && activeUserToken.includes('.')) {
-      setIsUserDataReady(true)
-      return undefined
-    }
-
-    if (isDsqlBackend() && !activeUserToken.includes('.')) {
-      let cancelled = false
-      const localCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
-      const localFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
-      const localSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
-      const hasLocalData =
-        localCart.length > 0 ||
-        localFavorites.length > 0 ||
-        Object.keys(localSettings).length > 0
-
-      ;(async () => {
-        try {
-          const r = await fetch(dsqlUrl('/api/user-state'), { headers: { ...authHeaders() } })
-          const remote = r.ok ? await r.json().catch(() => null) : null
-          if (cancelled) return
-
-          const hasRemote =
-            remote &&
-            ((Array.isArray(remote.cartItems) && remote.cartItems.length > 0) ||
-              (Array.isArray(remote.favorites) && remote.favorites.length > 0) ||
-              (remote.settings && Object.keys(remote.settings).length > 0))
-
-          if (hasRemote) {
-            setCartItems(Array.isArray(remote.cartItems) ? remote.cartItems : [])
-            setFavorites(Array.isArray(remote.favorites) ? remote.favorites : [])
-            if (remote.settings && typeof remote.settings === 'object') {
-              setSettings((current) => ({ ...current, ...remote.settings }))
-            }
-          } else if (hasLocalData) {
-            setCartItems(localCart)
-            setFavorites(localFavorites)
-            if (Object.keys(localSettings).length) {
-              setSettings((current) => ({ ...current, ...localSettings }))
-            }
-            await fetch(dsqlUrl('/api/user-state'), {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json', ...authHeaders() },
-              body: JSON.stringify({
-                cartItems: localCart,
-                favorites: localFavorites,
-                settings: { ...localSettings },
-              }),
-            })
-          }
-        } catch (e) {
-          console.error(e)
-        } finally {
-          if (!cancelled) setIsUserDataReady(true)
-        }
-      })()
-
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
-
-    const localCart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
-    const localFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
-    const localSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')
-
-    const hasLocalData =
-      localCart.length > 0 ||
-      localFavorites.length > 0 ||
-      Object.keys(localSettings).length > 0
-
-    const listener = onValue(
-      userDataRef,
-      async (snapshot) => {
-        const remote = snapshot.val()
-
-        if (remote) {
-          setCartItems(Array.isArray(remote.cartItems) ? remote.cartItems : [])
-          setFavorites(Array.isArray(remote.favorites) ? remote.favorites : [])
-          if (remote.settings && typeof remote.settings === 'object') {
-            setSettings((current) => ({ ...current, ...remote.settings }))
-          }
-          setIsUserDataReady(true)
-          return
-        }
-
-        if (hasLocalData) {
-          await set(userDataRef, {
-            cartItems: localCart,
-            favorites: localFavorites,
-            settings: localSettings,
-            migratedAt: new Date().toISOString(),
-          })
-          setIsUserDataReady(true)
-          return
-        }
-
-        setIsUserDataReady(true)
-      },
-      () => {
-        setIsUserDataReady(false)
-      },
-    )
-
-    return () => off(userDataRef, 'value', listener)
-  }, [activeUserToken])
+  }, [API_BASE])
 
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(cartItems))
@@ -309,29 +108,6 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
   }, [settings])
-
-  useEffect(() => {
-    if (!activeUserToken || !isUserDataReady) return
-
-    if (isDsqlBackend() && !activeUserToken.includes('.')) {
-      const t = setTimeout(() => {
-        fetch(dsqlUrl('/api/user-state'), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ cartItems, favorites, settings }),
-        }).catch(() => {})
-      }, 400)
-      return () => clearTimeout(t)
-    }
-
-    const userDataRef = ref(db, `${USER_DATA_PATH}/${activeUserToken}/shopData`)
-    update(userDataRef, {
-      cartItems,
-      favorites,
-      settings,
-      updatedAt: new Date().toISOString(),
-    }).catch(() => {})
-  }, [activeUserToken, isUserDataReady, cartItems, favorites, settings])
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || 'null')

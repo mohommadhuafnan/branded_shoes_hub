@@ -4,10 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './Admin.css';
 import { useShop } from '../../context/ShopContext';
-import { isDsqlBackend, dsqlUrl, authHeaders } from '../../lib/api';
-import { ref, onValue, set, push, update, remove, off } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../firebase';
+import { API_BASE, authHeaders } from '../../lib/api';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -24,65 +21,36 @@ function AdminDashboard() {
 
   const { showToast } = useShop();
 
-  const loadAdminDataDsql = useCallback(async () => {
+  const loadAdminData = useCallback(async () => {
     const h = { ...authHeaders() };
     try {
       const [pr, or, co] = await Promise.all([
-        fetch(dsqlUrl('/api/products?includeInactive=true&limit=200'), { headers: h }),
-        fetch(dsqlUrl('/api/orders'), { headers: h }),
-        fetch(dsqlUrl('/api/content')),
+        fetch(`${API_BASE}/products?activeOnly=false&limit=200`, { headers: h }),
+        fetch(`${API_BASE}/orders`, { headers: h }),
+        fetch(`${API_BASE}/admin/content`, { headers: h }),
       ]);
-      const pj = await pr.json().catch(() => ({}));
-      const oj = await or.json().catch(() => ({}));
+      const pj = await pr.json().catch(() => ({ data: [] }));
+      const oj = await or.json().catch(() => ([]));
       const cj = await co.json().catch(() => ({}));
       if (pr.ok) {
-        const rows = (pj.data || []).map((p) => ({ ...p, _id: p._id || p.id }));
+        const rows = (Array.isArray(pj.data) ? pj.data : []).map((p) => ({ ...p, _id: p._id || p.id }));
         setProducts(rows);
       }
       if (or.ok) {
-        const rows = (oj.data || []).map((o) => ({ ...o, _id: o._id || o.id }));
+        const rows = (Array.isArray(oj) ? oj : []).map((o) => ({ ...o, _id: o._id || o.id }));
         setOrders([...rows].reverse());
       }
       if (co.ok && cj && typeof cj === 'object') setContent((prev) => ({ ...prev, ...cj }));
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [API_BASE]);
 
   useEffect(() => {
-    if (isDsqlBackend()) {
-      loadAdminDataDsql();
-      const id = setInterval(loadAdminDataDsql, 30000);
-      return () => clearInterval(id);
-    }
-
-    const productsRef = ref(db, 'products');
-    const ordersRef = ref(db, 'orders');
-    const contentRef = ref(db, 'content');
-
-    const unsubscribeProducts = onValue(productsRef, (snapshot) => {
-      const data = snapshot.val();
-      const rows = data ? Object.keys(data).map((k) => ({ _id: k, ...data[k] })) : [];
-      setProducts(rows);
-    });
-
-    const unsubscribeOrders = onValue(ordersRef, (snapshot) => {
-      const data = snapshot.val();
-      const rows = data ? Object.keys(data).map((k) => ({ _id: k, ...data[k] })) : [];
-      setOrders(rows.reverse());
-    });
-
-    const unsubscribeContent = onValue(contentRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) setContent(data);
-    });
-
-    return () => {
-      off(productsRef, 'value', unsubscribeProducts);
-      off(ordersRef, 'value', unsubscribeOrders);
-      off(contentRef, 'value', unsubscribeContent);
-    };
-  }, [loadAdminDataDsql]);
+    loadAdminData();
+    const id = setInterval(loadAdminData, 30000);
+    return () => clearInterval(id);
+  }, [loadAdminData]);
 
   useEffect(() => {
     const tp = products.length;
@@ -135,29 +103,17 @@ function AdminDashboard() {
     if (!file) return;
     setUploadingImage(true);
     try {
-      if (isDsqlBackend()) {
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Could not read file'));
-          reader.readAsDataURL(file);
-        })
-        const res = await fetch(dsqlUrl('/api/upload-image'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ dataUrl, mime: file.type || 'image/jpeg' }),
-        })
-        const j = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(j.message || 'Upload failed')
-        setFormData((prev) => ({ ...prev, image: j.url }))
-        if (showToast) showToast('Upload complete', 'Image ready (no Firebase).', 'success')
-      } else {
-        const fileRef = storageRef(storage, `products/${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        const url = await getDownloadURL(fileRef);
-        setFormData((prev) => ({ ...prev, image: url }));
-        if(showToast) showToast('Upload complete', 'Image uploaded successfully.', 'success');
-      }
+      const body = new FormData();
+      body.append('image', file);
+      const res = await fetch(`${API_BASE}/products/upload`, {
+        method: 'POST',
+        headers: { ...authHeaders() },
+        body,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.message || 'Upload failed');
+      setFormData((prev) => ({ ...prev, image: j.imageUrl || j.absoluteUrl || '' }));
+      if (showToast) showToast('Upload complete', 'Image uploaded successfully.', 'success');
     } catch (err) {
       if(showToast) showToast('Upload failed', err.message, 'warning');
     } finally {
@@ -172,38 +128,30 @@ function AdminDashboard() {
         typeof formData.sizes === 'string' ? formData.sizes.split(',').map((s) => s.trim()) : formData.sizes;
       const dataToSave = { ...formData, sizes: sizesArray };
 
-      if (isDsqlBackend()) {
-        const body = {
-          name: dataToSave.name,
-          description: dataToSave.description || '',
-          price: Number(dataToSave.price),
-          salePrice: dataToSave.salePrice === '' ? null : Number(dataToSave.salePrice) || null,
-          stock: Number(dataToSave.stock),
-          category: dataToSave.category || 'Uncategorized',
-          brand: dataToSave.brand || 'Shoes Hub',
-          image: dataToSave.image || '',
-          sizes: sizesArray,
-          featured: !!dataToSave.featured,
-        };
-        const url = editingId
-          ? dsqlUrl(`/api/product/${encodeURIComponent(editingId)}`)
-          : dsqlUrl('/api/products');
-        const res = await fetch(url, {
-          method: editingId ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify(body),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(j.message || 'Save failed');
-        if (showToast) showToast('Success', editingId ? 'Product updated!' : 'Product added!', 'success');
-        await loadAdminDataDsql();
-      } else if (editingId) {
-        await update(ref(db, `products/${editingId}`), dataToSave);
-        if (showToast) showToast('Success', 'Product updated!', 'success');
-      } else {
-        await push(ref(db, 'products'), dataToSave);
-        if (showToast) showToast('Success', 'Product added!', 'success');
-      }
+      const body = {
+        name: dataToSave.name,
+        description: dataToSave.description || '',
+        price: Number(dataToSave.price),
+        salePrice: dataToSave.salePrice === '' ? null : Number(dataToSave.salePrice) || null,
+        stock: Number(dataToSave.stock),
+        category: dataToSave.category || 'Uncategorized',
+        brand: dataToSave.brand || 'Shoes Hub',
+        image: dataToSave.image || '',
+        sizes: sizesArray,
+        featured: !!dataToSave.featured,
+      };
+      const url = editingId
+        ? `${API_BASE}/products/${encodeURIComponent(editingId)}`
+        : `${API_BASE}/products`;
+      const res = await fetch(url, {
+        method: editingId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.message || 'Save failed');
+      if (showToast) showToast('Success', editingId ? 'Product updated!' : 'Product added!', 'success');
+      await loadAdminData();
 
       setIsModalOpen(false);
     } catch (err) {
@@ -215,19 +163,14 @@ function AdminDashboard() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      if (isDsqlBackend()) {
-        const res = await fetch(dsqlUrl(`/api/product/${encodeURIComponent(id)}`), {
-          method: 'DELETE',
-          headers: { ...authHeaders() },
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(j.message || 'Delete failed');
-        if (showToast) showToast('Deleted', 'Product removed successfully.', 'success');
-        await loadAdminDataDsql();
-      } else {
-        await remove(ref(db, `products/${id}`));
-        if (showToast) showToast('Deleted', 'Product removed successfully.', 'success');
-      }
+      const res = await fetch(`${API_BASE}/products/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { ...authHeaders() },
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.message || 'Delete failed');
+      if (showToast) showToast('Deleted', 'Product removed successfully.', 'success');
+      await loadAdminData();
     } catch (err) {
       if (showToast) showToast('Error', err.message, 'warning');
       else alert(err.message);
@@ -236,18 +179,14 @@ function AdminDashboard() {
 
   const updateOrderStatus = async (id, status) => {
     try {
-      if (isDsqlBackend()) {
-        const res = await fetch(dsqlUrl(`/api/orders/${encodeURIComponent(id)}`), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ status }),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(j.message || 'Update failed');
-        await loadAdminDataDsql();
-      } else {
-        await update(ref(db, `orders/${id}`), { status });
-      }
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ status }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.message || 'Update failed');
+      await loadAdminData();
     } catch (err) {
       if (showToast) showToast('Error', err.message, 'warning');
       else alert(err.message);
@@ -256,20 +195,15 @@ function AdminDashboard() {
 
   const saveContent = async () => {
     try {
-      if (isDsqlBackend()) {
-        const res = await fetch(dsqlUrl('/api/content'), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify(content),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(j.message || 'Save failed');
-        if (showToast) showToast('Saved', 'Homepage content updated.', 'success');
-        await loadAdminDataDsql();
-      } else {
-        await set(ref(db, 'content'), content);
-        if (showToast) showToast('Saved', 'Homepage content updated.', 'success');
-      }
+      const res = await fetch(`${API_BASE}/admin/content`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(content),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.message || 'Save failed');
+      if (showToast) showToast('Saved', 'Homepage content updated.', 'success');
+      await loadAdminData();
     } catch (err) {
       if (showToast) showToast('Error', err.message, 'warning');
       else alert(err.message);

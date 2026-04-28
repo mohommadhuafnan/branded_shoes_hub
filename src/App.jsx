@@ -19,7 +19,7 @@ import PaymentModal from './Components/PaymentModal'
 import WhatsAppFloat from './Components/WhatsAppFloat'
 import { useShop } from './context/ShopContext'
 import { useScrollAnimations } from './hooks/useScrollAnimations'
-import { API_BASE, authHeaders, isDsqlBackend, dsqlUrl } from './lib/api'
+import { API_BASE, authHeaders } from './lib/api'
 
 function Toast() {
   const { toast } = useShop()
@@ -68,7 +68,7 @@ function App() {
       const pendingOrder = localStorage.getItem('pendingOrder');
       if (pendingOrder) {
         const orderData = JSON.parse(pendingOrder);
-        const orderUrl = isDsqlBackend() ? dsqlUrl('/api/orders') : `${API_BASE}/orders`
+        const orderUrl = `${API_BASE}/orders`
         fetch(orderUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders() },
