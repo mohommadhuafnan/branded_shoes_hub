@@ -11,6 +11,7 @@ import Womens from './Packages/Womens/Womens'
 import Sales from './Packages/Sales/Sales'
 import Contact from './Packages/Contact/Contact'
 import Auth from './Packages/Auth/Auth'
+import AdminLogin from './Packages/Auth/AdminLogin'
 import AdminDashboard from './Packages/Admin/AdminDashboard'
 import Settings from './Packages/Settings/Settings'
 import MyOrders from './Packages/User/MyOrders'
@@ -127,7 +128,7 @@ function App() {
           <Route path="/register" element={<Auth mode="user" initialView="signup" />} />
           <Route path="/client-admin-auth-portal" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
           <Route path="/secure-admin-login-x9k2p7" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
-          <Route path={ADMIN_LOGIN_PATH} element={<Auth mode="admin" initialView="login" />} />
+          <Route path={ADMIN_LOGIN_PATH} element={<AdminLogin />} />
           <Route
             path="/admin"
             element={isAdmin ? <AdminDashboard /> : <Navigate to={ADMIN_LOGIN_PATH} replace />}
