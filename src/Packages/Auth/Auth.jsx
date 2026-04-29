@@ -21,9 +21,9 @@ import {
 const API_URL = `${API_BASE}/auth`;
 
 function Auth({ mode = 'user', initialView = 'login' }) {
-  const allowAdmin = mode === 'admin';
-  const [accountType, setAccountType] = useState(allowAdmin ? 'admin' : 'user'); // user | admin
-  const [view, setView] = useState(initialView); // 'login', 'signup', 'forgot', 'verify'
+  const isAdminOnly = mode === 'admin';
+  const [accountType, setAccountType] = useState(isAdminOnly ? 'admin' : 'user'); // user | admin
+  const [view, setView] = useState(isAdminOnly ? 'login' : initialView); // 'login', 'signup', 'forgot', 'verify'
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [verifyEmail, setVerifyEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,7 @@ function Auth({ mode = 'user', initialView = 'login' }) {
   };
 
   const switchAccountType = (type) => {
-    if (!allowAdmin) return;
+    if (isAdminOnly) return;
     setAccountType(type);
     setView('login');
     setMessage({ type: '', text: '' });
@@ -234,7 +234,7 @@ function Auth({ mode = 'user', initialView = 'login' }) {
             {loading ? 'Logging in...' : accountType === 'admin' ? 'Log In as Admin' : 'Log In as User'}
           </button>
           
-          {accountType === 'user' && (
+          {!isAdminOnly && accountType === 'user' && (
             <>
               <div className="auth-divider">or</div>
               <button 
@@ -250,10 +250,12 @@ function Auth({ mode = 'user', initialView = 'login' }) {
         </div>
       </form>
 
-      <div className="auth-links">
-        {accountType === 'user' && <button type="button" className="auth-link" onClick={() => switchView('forgot')}>Forgot password?</button>}
-        {accountType === 'user' && <button type="button" className="auth-link" onClick={() => switchView('signup')}>Don't have an account? Sign up</button>}
-      </div>
+      {!isAdminOnly && (
+        <div className="auth-links">
+          {accountType === 'user' && <button type="button" className="auth-link" onClick={() => switchView('forgot')}>Forgot password?</button>}
+          {accountType === 'user' && <button type="button" className="auth-link" onClick={() => switchView('signup')}>Don't have an account? Sign up</button>}
+        </div>
+      )}
     </div>
   );
 
@@ -391,7 +393,7 @@ function Auth({ mode = 'user', initialView = 'login' }) {
   return (
     <section className="auth-page">
       <div className="auth-container">
-        {allowAdmin && (
+        {!isAdminOnly && (
           <div className="auth-role-switch">
             <button
               type="button"
@@ -410,9 +412,9 @@ function Auth({ mode = 'user', initialView = 'login' }) {
           </div>
         )}
         {view === 'login' && renderLogin()}
-        {view === 'signup' && accountType === 'user' && renderSignup()}
-        {view === 'forgot' && accountType === 'user' && renderForgot()}
-        {view === 'verify' && accountType === 'user' && renderVerify()}
+        {!isAdminOnly && view === 'signup' && accountType === 'user' && renderSignup()}
+        {!isAdminOnly && view === 'forgot' && accountType === 'user' && renderForgot()}
+        {!isAdminOnly && view === 'verify' && accountType === 'user' && renderVerify()}
       </div>
     </section>
   );
