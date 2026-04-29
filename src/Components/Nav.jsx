@@ -111,14 +111,14 @@ function Nav() {
 
           <button
             type="button"
-            className="icon-btn search-btn"
+            className="icon-btn search-btn hide-mobile-xs"
             aria-label="Search products"
             onClick={() => setSearchOpen(true)}
           >
             <FaSearch />
           </button>
 
-          <button type="button" className="icon-btn" aria-label="Favorites">
+          <button type="button" className="icon-btn hide-mobile-xs" aria-label="Favorites">
             <FaHeart />
             <span className="count-badge">{favorites.length}</span>
           </button>

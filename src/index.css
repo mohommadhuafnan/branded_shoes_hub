@@ -1172,7 +1172,6 @@ select {
     padding: 26px;
   }
 
-  .payment-methods,
   .checkout-grid,
   .feature-strip,
   .stats-panel,
@@ -1180,6 +1179,10 @@ select {
   .product-grid,
   .compact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .payment-methods {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toolbar-chips {
@@ -1244,6 +1247,80 @@ select {
   .drawer,
   .payment-modal {
     width: 100%;
+  }
+
+  .hide-mobile-xs {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: grid !important;
+    background: #fff;
+    border: 1px solid rgba(18, 24, 38, 0.2);
+    color: var(--secondary);
+  }
+
+  .payment-form {
+    padding: 0 14px 14px;
+    gap: 12px;
+  }
+
+  .drawer-head {
+    padding: 16px 14px;
+  }
+
+  .drawer-head h3 {
+    margin: 4px 0 0;
+    font-size: 1.55rem;
+    line-height: 1.2;
+  }
+
+  .checkout-panel {
+    padding: 14px;
+    border-radius: 16px;
+    gap: 10px;
+  }
+
+  .checkout-panel h4 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .checkout-panel p,
+  .summary-row {
+    font-size: 0.92rem;
+  }
+
+  .payment-form input,
+  .payment-form textarea {
+    padding: 11px 12px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+  }
+
+  .payment-form textarea {
+    min-height: 88px;
+  }
+
+  .payment-methods {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payment-pill {
+    padding: 10px 8px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    gap: 7px;
+  }
+
+  .payment-pill svg {
+    font-size: 0.95rem;
+  }
+
+  .btn.large {
+    padding: 12px;
+    font-size: 0.95rem;
   }
 }
 
@@ -3046,7 +3123,12 @@ select {
   }
 
   .catalog-product-grid .product-card {
-    padding: 12px;
+    padding: 14px 12px;
+  }
+
+  .catalog-product-grid .product-content {
+    padding-top: 14px;
+    padding-bottom: 6px;
   }
 
   .catalog-product-grid .product-card h3 {
@@ -3059,6 +3141,19 @@ select {
     -webkit-box-orient: vertical;
     overflow: hidden;
     font-size: 0.82rem;
+  }
+
+  .catalog-product-grid .card-actions {
+    margin-top: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .catalog-product-grid .card-actions .btn {
+    min-height: 56px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    line-height: 1.2;
   }
 }
 

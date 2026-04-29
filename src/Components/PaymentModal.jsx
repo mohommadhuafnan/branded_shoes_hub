@@ -30,19 +30,16 @@ function PaymentModal() {
       return
     }
     try {
-      const userStr = localStorage.getItem('user')
-      const user = userStr ? JSON.parse(userStr) : {}
-      
+      const user = JSON.parse(localStorage.getItem('user') || 'null')
+
       const payload = {
         customerName: form.name,
-        customerEmail: user.email || '',
+        customerEmail: user?.email || settings?.email || '',
         customerPhone: form.phone,
         address: form.address,
         city: form.city,
         paymentMethod: form.method,
         totalPrice: cartSummary.total,
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
         items: cartItems.map((item) => ({
           productId: item.id,
           productName: item.name,

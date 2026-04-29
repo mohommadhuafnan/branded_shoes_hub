@@ -37,6 +37,7 @@ const router = express.Router();
 
 const createOrderSchema = Joi.object({
   customerName: Joi.string().trim().required(),
+  customerEmail: Joi.string().email().allow(''),
   customerPhone: Joi.string().allow(''),
   address: Joi.string().allow(''),
   city: Joi.string().allow(''),
@@ -54,7 +55,10 @@ const createOrderSchema = Joi.object({
 });
 
 router.post('/', optionalProtect, async (req, res) => {
-  const { error, value } = createOrderSchema.validate(req.body, { abortEarly: false });
+  const { error, value } = createOrderSchema.validate(req.body, {
+    abortEarly: false,
+    stripUnknown: true
+  });
   if (error) {
     return res.status(400).json({ message: error.details.map((d) => d.message).join(', ') });
   }
@@ -71,6 +75,8 @@ router.post('/', optionalProtect, async (req, res) => {
   if (req.user) {
     orderData.user = req.user._id;
     orderData.email = req.user.email;
+  } else if (value.customerEmail) {
+    orderData.email = value.customerEmail;
   }
 
   const order = await Order.create(orderData);
@@ -123,8 +129,20 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-router.get('/myorders', protect, async (req, res) => {
-  const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+router.get('/myorders', optionalProtect, async (req, res) => {
+  let query = null;
+
+  if (req.user?._id) {
+    query = { $or: [{ user: req.user._id }, { email: req.user.email || '' }] };
+  } else {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(401).json({ message: 'Not authorized. Please login.' });
+    }
+    query = { email };
+  }
+
+  const orders = await Order.find(query).sort({ createdAt: -1 });
   res.json(orders);
 });
 

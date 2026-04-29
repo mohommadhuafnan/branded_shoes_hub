@@ -15,11 +15,30 @@ function MyOrders() {
 
   const fetchOrders = async () => {
     try {
-      const url = `${API_BASE}/orders/myorders`
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const email = String(user?.email || '').trim().toLowerCase();
+
+      if (!token) {
+        if (!email) {
+          setOrders([]);
+          return;
+        }
+      }
+
+      const url = email ? `${API_BASE}/orders/myorders?email=${encodeURIComponent(email)}` : `${API_BASE}/orders/myorders`
       const response = await fetch(url, {
         headers: authHeaders(),
       });
-      if (!response.ok) throw new Error('Failed to fetch orders');
+      if (response.status === 401) {
+        // Keep page usable if auth is missing/expired.
+        setOrders([]);
+        return;
+      }
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to fetch orders');
+      }
       const data = await response.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
