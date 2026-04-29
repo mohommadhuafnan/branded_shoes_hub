@@ -122,7 +122,12 @@ function AdminDashboard() {
       setFormData((prev) => ({ ...prev, image: j.imageUrl || j.absoluteUrl || prev.image }));
       if (showToast) showToast('Upload complete', 'Image uploaded successfully.', 'success');
     } catch (err) {
-      if(showToast) showToast('Upload failed', err.message, 'warning');
+      let msg = err.message || 'Upload failed';
+      if (err instanceof TypeError && msg === 'Failed to fetch') {
+        msg =
+          'Cannot reach API. If testing locally: run backend (cd backend && npm run dev), whitelist your IP in MongoDB Atlas, and use http://localhost:5173. If live site: check Vercel env VITE_API_URL.';
+      }
+      if (showToast) showToast('Upload failed', msg, 'warning');
     } finally {
       setUploadingImage(false);
     }

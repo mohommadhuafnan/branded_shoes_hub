@@ -1,16 +1,10 @@
 require('dotenv').config();
-const dns = require('node:dns');
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const { applyMongoDnsFromEnv } = require('../lib/mongoDns');
 
 async function run() {
-  const dnsServers = String(process.env.MONGODB_DNS_SERVERS || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (dnsServers.length > 0) {
-    dns.setServers(dnsServers);
-  }
+  applyMongoDnsFromEnv();
 
   const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!mongoUri) throw new Error('Missing MONGODB_URI (or legacy MONGO_URI)');

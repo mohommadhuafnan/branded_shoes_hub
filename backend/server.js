@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const dns = require('node:dns');
 const cors = require('cors');
+const { applyMongoDnsFromEnv } = require('./lib/mongoDns');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -19,9 +19,30 @@ let mongoConnectPromise = null;
 
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
+
+const allowedVercelOrigins = (process.env.CLIENT_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || '*'
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      const normalized = origin.replace(/\/$/, '');
+      if (allowedVercelOrigins.includes(normalized)) return callback(null, true);
+      try {
+        const { hostname } = new URL(origin);
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return callback(null, true);
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      if (allowedVercelOrigins.length === 0) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
   })
 );
 app.use(morgan('dev'));
@@ -39,10 +60,6 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 5000;
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
-const dnsServers = String(process.env.MONGODB_DNS_SERVERS || '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
 const clientOptions = {
   serverApi: { version: '1', strict: true, deprecationErrors: true },
   serverSelectionTimeoutMS: 15000
@@ -54,10 +71,7 @@ const connectToMongo = async () => {
     if (!mongoUri) {
       throw new Error('Missing MONGODB_URI (or legacy MONGO_URI) environment variable');
     }
-    if (dnsServers.length > 0) {
-      dns.setServers(dnsServers);
-      console.log('Using custom DNS servers for MongoDB SRV lookup:', dnsServers.join(', '));
-    }
+    applyMongoDnsFromEnv();
     mongoConnectPromise = mongoose.connect(mongoUri, clientOptions);
   }
   await mongoConnectPromise;
