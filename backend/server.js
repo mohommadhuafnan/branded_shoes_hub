@@ -15,6 +15,7 @@ const orderRoutes = require('./routes/orders');
 const contentRoutes = require('./routes/content');
 
 const app = express();
+let mongoConnectPromise = null;
 
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -47,8 +48,9 @@ const clientOptions = {
   serverSelectionTimeoutMS: 15000
 };
 
-const startServer = async () => {
-  try {
+const connectToMongo = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (!mongoConnectPromise) {
     if (!mongoUri) {
       throw new Error('Missing MONGODB_URI (or legacy MONGO_URI) environment variable');
     }
@@ -56,10 +58,15 @@ const startServer = async () => {
       dns.setServers(dnsServers);
       console.log('Using custom DNS servers for MongoDB SRV lookup:', dnsServers.join(', '));
     }
+    mongoConnectPromise = mongoose.connect(mongoUri, clientOptions);
+  }
+  await mongoConnectPromise;
+};
 
-    await mongoose.connect(mongoUri, clientOptions);
+const startServer = async () => {
+  try {
+    await connectToMongo();
     console.log('MongoDB successfully connected');
-
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
@@ -74,4 +81,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, connectToMongo };
