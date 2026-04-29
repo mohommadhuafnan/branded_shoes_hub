@@ -5,6 +5,10 @@ import { useShop } from '../context/ShopContext'
 function ProductCard({ product }) {
   const { addToCart, favorites, toggleFavorite, setIsCheckoutOpen, setIsCartOpen } = useShop()
   const safeSizes = product.sizes?.length ? product.sizes : ['40']
+  const safeRating = Number(product.rating || 0)
+  const safeStock = Number(product.stock || 0)
+  const safePrice = Number(product.price || 0)
+  const safeOriginalPrice = product.originalPrice ? Number(product.originalPrice) : null
   const [selectedSize, setSelectedSize] = useState(safeSizes[0])
   const isFavorite = favorites.includes(product.id)
 
@@ -34,16 +38,16 @@ function ProductCard({ product }) {
       <div className="product-content">
         <div className="product-rating">
           <FaStar />
-          <span>{product.rating.toFixed(1)}</span>
-          <small>({product.stock} in stock)</small>
+          <span>{safeRating.toFixed(1)}</span>
+          <small>({safeStock} in stock)</small>
         </div>
 
         <h3>{product.name}</h3>
         <p>{product.description}</p>
 
         <div className="product-price-row">
-          <strong>LKR {product.price.toLocaleString()}</strong>
-          {product.originalPrice && <span>LKR {product.originalPrice.toLocaleString()}</span>}
+          <strong>LKR {safePrice.toLocaleString()}</strong>
+          {safeOriginalPrice && <span>LKR {safeOriginalPrice.toLocaleString()}</span>}
         </div>
 
         <div className="size-row">

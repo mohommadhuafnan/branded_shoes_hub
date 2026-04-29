@@ -6,9 +6,19 @@ const ShopContext = createContext(null)
 const CART_KEY = 'shouse-cart'
 const FAVORITES_KEY = 'shouse-favorites'
 const SETTINGS_KEY = 'shouse-settings'
+const PRODUCTS_CACHE_KEY = 'shouse-products-cache'
 
 export function ShopProvider({ children }) {
-  const [products, setProducts] = useState([])
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem(PRODUCTS_CACHE_KEY)
+    if (!saved) return []
+    try {
+      const parsed = JSON.parse(saved)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })
   const [content, setContent] = useState(null)
   const [productsLoading, setProductsLoading] = useState(true)
   const [productsError, setProductsError] = useState('')
@@ -62,10 +72,12 @@ export function ShopProvider({ children }) {
       if (!r.ok) throw new Error(j.message || `Products request failed (${r.status})`)
       const list = (j.data || []).map(mapProduct)
       setProducts(list)
+      localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(list))
     } catch (e) {
       console.error(e)
       setProductsError(e.message || 'Unable to load products.')
-      setProducts([])
+      // Keep last successful cache instead of blanking UI during temporary network/cold-start issues.
+      setProducts((prev) => prev)
     } finally {
       setProductsLoading(false)
     }

@@ -1,8 +1,9 @@
 /** Express/Mongo API (admin login, uploads, legacy). */
+const PROD_API_BASE = 'https://backend-branded-shoes-hub.vercel.app/api'
 const defaultApiBase =
   import.meta.env.DEV || window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    : '/api'
+    : PROD_API_BASE
 
 export const API_BASE = (import.meta.env.VITE_API_URL || defaultApiBase).replace(/\/$/, '')
 
