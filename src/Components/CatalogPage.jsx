@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHero from './PageHero'
 import ProductCard from './ProductCard'
+import ProductDetailModal from './ProductDetailModal'
 
 function CatalogPage({
   eyebrow,
@@ -10,7 +12,9 @@ function CatalogPage({
   image,
   hideHero = false
 }) {
-  const [search, setSearch] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [detailProduct, setDetailProduct] = useState(null)
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [priceSort, setPriceSort] = useState('')
@@ -85,8 +89,24 @@ function CatalogPage({
     inStockOnly
   ])
 
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    setSearch(q)
+  }, [searchParams])
+
+  const handleSearchChange = (value) => {
+    setSearch(value)
+    const next = new URLSearchParams(searchParams)
+    if (value.trim()) next.set('q', value.trim())
+    else next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
+
   const resetFilters = () => {
     setSearch('')
+    const next = new URLSearchParams(searchParams)
+    next.delete('q')
+    setSearchParams(next, { replace: true })
     setSelectedSize('')
     setSelectedCategory('')
     setPriceSort('')
@@ -116,7 +136,7 @@ function CatalogPage({
               className="filter-input"
               placeholder="Search products..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
 
@@ -234,10 +254,14 @@ function CatalogPage({
             </div>
           </div>
 
-          <div className="product-grid">
+          <div className="product-grid catalog-product-grid">
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onImageClick={() => setDetailProduct(product)}
+                />
               ))
             ) : (
               <div className="empty-state">
@@ -250,6 +274,10 @@ function CatalogPage({
           </div>
         </div>
       </section>
+
+      {detailProduct && (
+        <ProductDetailModal product={detailProduct} onClose={() => setDetailProduct(null)} />
+      )}
     </div>
   )
 }

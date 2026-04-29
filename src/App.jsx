@@ -10,6 +10,7 @@ import Mens from './Packages/Mens/Mens'
 import Womens from './Packages/Womens/Womens'
 import Sales from './Packages/Sales/Sales'
 import Contact from './Packages/Contact/Contact'
+import Browse from './Packages/Shop/Browse'
 import Auth from './Packages/Auth/Auth'
 import AdminLogin from './Packages/Auth/AdminLogin'
 import AdminDashboard from './Packages/Admin/AdminDashboard'
@@ -121,6 +122,7 @@ function App() {
           <Route path="/mens" element={<Mens />} />
           <Route path="/womens" element={<Womens />} />
           <Route path="/sales" element={<Sales />} />
+          <Route path="/shop" element={<Browse />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/my-orders" element={user ? <MyOrders /> : <Navigate to="/login" replace />} />

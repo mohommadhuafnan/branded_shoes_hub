@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import './Admin.css';
 import { useShop } from '../../context/ShopContext';
 import { API_BASE, authHeaders, toAbsoluteImageUrl } from '../../lib/api';
+import brandLogo from '../../assets/logo.png';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -228,6 +229,8 @@ function AdminDashboard() {
     return Object.keys(days).map(date => ({ date, sales: days[date] })).reverse();
   }, [orders]);
 
+  const goTab = (tab) => setActiveTab(tab);
+
   const renderOverview = () => (
     <div>
       <div className="admin-header">
@@ -239,51 +242,71 @@ function AdminDashboard() {
           <div className="stat-icon"><FaChartLine /></div>
           <div className="stat-info">
             <h3>Today's Sales</h3>
-            <strong>${stats.todaySales.toLocaleString()}</strong>
+            <strong>LKR {stats.todaySales.toLocaleString()}</strong>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon"><FaChartLine style={{color: '#4179ff'}}/></div>
           <div className="stat-info">
             <h3>Monthly Sales</h3>
-            <strong>${stats.monthSales.toLocaleString()}</strong>
+            <strong>LKR {stats.monthSales.toLocaleString()}</strong>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon"><FaChartLine style={{color: '#4179ff'}}/></div>
           <div className="stat-info">
             <h3>Total Sales</h3>
-            <strong>${stats.totalSales.toLocaleString()}</strong>
+            <strong>LKR {stats.totalSales.toLocaleString()}</strong>
           </div>
         </div>
-        <div className="stat-card">
+        <button
+          type="button"
+          className="stat-card stat-card--clickable"
+          onClick={() => goTab('products')}
+        >
           <div className="stat-icon"><FaBoxOpen style={{color: '#10b981'}}/></div>
           <div className="stat-info">
             <h3>Total Products</h3>
             <strong>{stats.totalProducts}</strong>
+            <span className="stat-card__hint">Tap to view &amp; manage</span>
           </div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          type="button"
+          className="stat-card stat-card--clickable"
+          onClick={() => goTab('products')}
+        >
           <div className="stat-icon"><FaBoxOpen style={{color: '#f59e0b'}}/></div>
           <div className="stat-info">
             <h3>In Stock Items</h3>
             <strong>{stats.availableProducts}</strong>
+            <span className="stat-card__hint">Tap to open inventory</span>
           </div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          type="button"
+          className="stat-card stat-card--clickable"
+          onClick={() => goTab('orders')}
+        >
           <div className="stat-icon"><FaClipboardList style={{color: '#6b21a8'}}/></div>
           <div className="stat-info">
             <h3>Total Orders</h3>
             <strong>{stats.totalOrders}</strong>
+            <span className="stat-card__hint">Tap to view orders</span>
           </div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          type="button"
+          className="stat-card stat-card--clickable"
+          onClick={() => goTab('products')}
+        >
           <div className="stat-icon"><FaBoxOpen style={{color: '#dc2626'}}/></div>
           <div className="stat-info">
             <h3>Low Stock (≤5)</h3>
             <strong>{stats.lowStockCount}</strong>
+            <span className="stat-card__hint">Tap to restock</span>
           </div>
-        </div>
+        </button>
       </div>
       
       <div className="admin-panel" style={{ marginTop: '2rem', height: '350px' }}>
@@ -342,7 +365,7 @@ function AdminDashboard() {
                   </td>
                   <td>{product.name}</td>
                   <td>{product.category}</td>
-                  <td>${product.price}</td>
+                  <td>LKR {Number(product.price || 0).toLocaleString()}</td>
                   <td>{product.stock}</td>
                   <td>
                     <div className="td-actions">
@@ -355,6 +378,39 @@ function AdminDashboard() {
             )}
           </tbody>
         </table>
+        <div className="admin-product-cards" aria-hidden="true">
+          {products.length === 0 ? (
+            <p className="admin-empty-inventory" style={{ padding: '12px', textAlign: 'center', color: 'var(--muted)' }}>
+              No products in inventory.
+            </p>
+          ) : (
+          products.map((product) => (
+            <div key={`card-${product._id}`} className="admin-product-card">
+              <div className="admin-product-card__img">
+                {product.image ? (
+                  <img src={toAbsoluteImageUrl(product.image)} alt="" />
+                ) : (
+                  <div className="admin-product-card__placeholder" />
+                )}
+              </div>
+              <div className="admin-product-card__body">
+                <strong>{product.name}</strong>
+                <span className="admin-product-card__meta">{product.category}</span>
+                <span className="admin-product-card__price">LKR {Number(product.price || 0).toLocaleString()}</span>
+                <span className="admin-product-card__stock">Stock: {product.stock}</span>
+                <div className="admin-product-card__actions">
+                  <button type="button" className="action-btn edit" onClick={() => openModal(product)} aria-label="Edit">
+                    <FaEdit />
+                  </button>
+                  <button type="button" className="action-btn delete" onClick={() => handleDelete(product._id)} aria-label="Delete">
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -384,7 +440,7 @@ function AdminDashboard() {
             {filteredOrders.map((order) => (
               <tr key={order._id}>
                 <td>{order.customerName}</td>
-              <td>${Number(order.totalPrice || 0).toLocaleString()}</td>
+              <td>LKR {Number(order.totalPrice || 0).toLocaleString()}</td>
               <td>
                 <select value={order.status} onChange={(e) => updateOrderStatus(order._id, e.target.value)}>
                   {['Pending', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((s) => <option key={s}>{s}</option>)}
@@ -415,9 +471,18 @@ function AdminDashboard() {
   );
 
   return (
+    <div className="admin-shell">
+      <header className="admin-brand-bar">
+        <img src={brandLogo} alt="" className="admin-brand-bar__logo" width={48} height={48} />
+        <div className="admin-brand-bar__text">
+          <strong className="admin-brand-bar__title">Shouse Hub</strong>
+          <span className="admin-brand-bar__sub">Shushab · Admin console</span>
+        </div>
+      </header>
+
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h2>Admin Panel</h2>
+        <h2 className="admin-sidebar-title">Menu</h2>
         <nav className="admin-nav">
           <button 
             className={`admin-nav-item ${activeTab === 'overview' ? 'active' : ''}`}
@@ -456,6 +521,46 @@ function AdminDashboard() {
         {activeTab === 'orders' && renderOrders()}
         {activeTab === 'content' && renderContent()}
       </main>
+    </div>
+
+      <nav className="admin-mobile-tabs" aria-label="Admin navigation">
+        <button
+          type="button"
+          className={`admin-mobile-tab ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <FaChartLine />
+          <span>Home</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-mobile-tab ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
+        >
+          <FaBoxOpen />
+          <span>Stock</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-mobile-tab ${activeTab === 'orders' ? 'active' : ''}`}
+          onClick={() => setActiveTab('orders')}
+        >
+          <FaClipboardList />
+          <span>Orders</span>
+        </button>
+        <button
+          type="button"
+          className={`admin-mobile-tab ${activeTab === 'content' ? 'active' : ''}`}
+          onClick={() => setActiveTab('content')}
+        >
+          <FaMobileAlt />
+          <span>Site</span>
+        </button>
+        <button type="button" className="admin-mobile-tab admin-mobile-tab--danger" onClick={handleLogout}>
+          <FaSignOutAlt />
+          <span>Out</span>
+        </button>
+      </nav>
 
       {/* Product Modal */}
       {isModalOpen && (
@@ -470,7 +575,7 @@ function AdminDashboard() {
                 </div>
                 <div className="admin-two-col-grid">
                   <div className="form-group">
-                    <label>Price ($)</label>
+                    <label>Price (LKR)</label>
                     <input required type="number" name="price" value={formData.price} onChange={handleInputChange} />
                   </div>
                   <div className="form-group">
@@ -502,7 +607,7 @@ function AdminDashboard() {
                 <div className="admin-two-col-grid">
                   <div className="form-group">
                     <label>Brand</label>
-                    <input name="brand" value={formData.brand} onChange={handleInputChange} placeholder="Shoes Hub" />
+                    <input name="brand" value={formData.brand} onChange={handleInputChange} placeholder="Shouse Hub" />
                   </div>
                   <div className="form-group">
                     <label>Sale Price (optional)</label>

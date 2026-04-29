@@ -9,6 +9,8 @@ function Nav() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'))
   const isAdmin = currentUser?.role === 'admin'
   const [hidden, setHidden] = useState(false)
@@ -26,6 +28,14 @@ function Nav() {
   }, [lastScroll])
 
   const closeMenu = () => setMobileOpen(false)
+
+  const runSearch = () => {
+    const q = searchQuery.trim()
+    navigate(q ? `/shop?q=${encodeURIComponent(q)}` : '/shop')
+    setSearchOpen(false)
+    setSearchQuery('')
+    closeMenu()
+  }
 
   useEffect(() => {
     const onStorage = () => setCurrentUser(JSON.parse(localStorage.getItem('user') || 'null'))
@@ -54,10 +64,10 @@ function Nav() {
     <header className={`site-header ${hidden ? 'hidden' : ''}`}>
       <nav className="navbar">
         <NavLink to="/" className="logo-link" onClick={closeMenu}>
-          <img src={logo} alt="Shoes Hub" />
+          <img src={logo} alt="Shouse Hub" />
           <div>
-            <strong>Shoes Hub</strong>
-            <span>Premium shoe store</span>
+            <strong>Shouse Hub</strong>
+            <span className="logo-tagline">Shushab · Premium footwear</span>
           </div>
         </NavLink>
 
@@ -99,7 +109,12 @@ function Nav() {
             </NavLink>
           )}
 
-          <button type="button" className="icon-btn search-btn" aria-label="Search">
+          <button
+            type="button"
+            className="icon-btn search-btn"
+            aria-label="Search products"
+            onClick={() => setSearchOpen(true)}
+          >
             <FaSearch />
           </button>
 
@@ -127,6 +142,57 @@ function Nav() {
           </button>
         </div>
       </nav>
+
+      {searchOpen && (
+        <div className="nav-search-overlay" role="dialog" aria-modal="true" aria-label="Search">
+          <button type="button" className="nav-search-overlay__backdrop" onClick={() => setSearchOpen(false)} aria-label="Close search" />
+          <div className="nav-search-panel">
+            <div className="nav-search-panel__head">
+              <h2>Search Shouse Hub</h2>
+              <button type="button" className="nav-search-close" onClick={() => setSearchOpen(false)} aria-label="Close">
+                <FaTimes />
+              </button>
+            </div>
+            <form
+              className="nav-search-form"
+              onSubmit={(e) => {
+                e.preventDefault()
+                runSearch()
+              }}
+            >
+              <input
+                type="search"
+                className="nav-search-input"
+                placeholder="Search shoes, brands, sizes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <button type="submit" className="btn btn-primary nav-search-submit">
+                Search
+              </button>
+            </form>
+            <p className="nav-search-hint">Browse by category</p>
+            <div className="nav-search-categories">
+              <button type="button" className="nav-cat-pill" onClick={() => { navigate('/womens'); setSearchOpen(false); closeMenu(); }}>
+                Womens
+              </button>
+              <button type="button" className="nav-cat-pill" onClick={() => { navigate('/mens'); setSearchOpen(false); closeMenu(); }}>
+                Mens
+              </button>
+              <button type="button" className="nav-cat-pill" onClick={() => { navigate('/kids'); setSearchOpen(false); closeMenu(); }}>
+                Kids
+              </button>
+              <button type="button" className="nav-cat-pill" onClick={() => { navigate('/sales'); setSearchOpen(false); closeMenu(); }}>
+                Sales
+              </button>
+              <button type="button" className="nav-cat-pill nav-cat-pill--accent" onClick={() => { navigate('/shop'); setSearchOpen(false); closeMenu(); }}>
+                Shop all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

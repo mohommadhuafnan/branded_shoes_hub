@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FaHeart, FaRegHeart, FaShoppingBag, FaBolt, FaStar } from 'react-icons/fa'
 import { useShop } from '../context/ShopContext'
 
-function ProductCard({ product }) {
+function ProductCard({ product, onImageClick }) {
   const { addToCart, favorites, toggleFavorite, setIsCheckoutOpen, setIsCartOpen } = useShop()
   const safeSizes = product.sizes?.length ? product.sizes : ['40']
   const safeRating = Number(product.rating || 0)
@@ -31,9 +31,20 @@ function ProductCard({ product }) {
 
       <span className="product-badge">{product.badge}</span>
 
-      <div className="product-image-wrap">
-        <img src={product.image} alt={product.name} className="product-image" />
-      </div>
+      {onImageClick ? (
+        <button
+          type="button"
+          className="product-image-wrap product-image-wrap--clickable"
+          onClick={() => onImageClick(product)}
+          aria-label={`View details: ${product.name}`}
+        >
+          <img src={product.image} alt={product.name} className="product-image" />
+        </button>
+      ) : (
+        <div className="product-image-wrap">
+          <img src={product.image} alt={product.name} className="product-image" />
+        </div>
+      )}
 
       <div className="product-content">
         <div className="product-rating">
