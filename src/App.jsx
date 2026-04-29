@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { getRedirectResult } from 'firebase/auth'
 import { auth } from './firebase'
 import Nav from './Components/Nav'
@@ -21,7 +21,7 @@ import { useShop } from './context/ShopContext'
 import { useScrollAnimations } from './hooks/useScrollAnimations'
 import { API_BASE, authHeaders } from './lib/api'
 
-const ADMIN_LOGIN_PATH = '/secure-admin-login-x9k2p7'
+const ADMIN_LOGIN_PATH = '/admin-login'
 
 function Toast() {
   const { toast } = useShop()
@@ -39,6 +39,7 @@ function App() {
   useScrollAnimations()
   const { completeOrder, showToast } = useShop()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     let cancelled = false
@@ -99,10 +100,18 @@ function App() {
 
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   const isAdmin = user?.role === 'admin'
+  const hidePublicLayout = [
+    '/login',
+    '/register',
+    '/admin-login',
+    '/client-admin-auth-portal',
+    '/secure-admin-login-x9k2p7',
+    '/admin',
+  ].includes(location.pathname)
 
   return (
     <div className="app-shell">
-      <Nav />
+      {!hidePublicLayout && <Nav />}
 
       <main>
         <Routes>
@@ -117,6 +126,7 @@ function App() {
           <Route path="/login" element={<Auth mode="user" initialView="login" />} />
           <Route path="/register" element={<Auth mode="user" initialView="signup" />} />
           <Route path="/client-admin-auth-portal" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
+          <Route path="/secure-admin-login-x9k2p7" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
           <Route path={ADMIN_LOGIN_PATH} element={<Auth mode="admin" initialView="login" />} />
           <Route
             path="/admin"
@@ -125,7 +135,7 @@ function App() {
         </Routes>
       </main>
 
-      <Footer />
+      {!hidePublicLayout && <Footer />}
       <CartDrawer />
       <PaymentModal />
       <WhatsAppFloat />
