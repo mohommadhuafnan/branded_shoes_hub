@@ -149,6 +149,14 @@ router.post('/upload', protect, adminOnly, (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Image file is required.' });
   }
+
+  // Vercel runtime has a read-only filesystem, so return a data URL from memory upload.
+  if (req.file.buffer) {
+    const mime = req.file.mimetype || 'image/jpeg';
+    const imageUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+    return res.status(201).json({ imageUrl, absoluteUrl: imageUrl });
+  }
+
   const imageUrl = `/uploads/${req.file.filename}`;
   const absoluteUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
   res.status(201).json({ imageUrl, absoluteUrl });

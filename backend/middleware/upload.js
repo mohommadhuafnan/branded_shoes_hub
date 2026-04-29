@@ -38,7 +38,7 @@ function extFromMime(mime) {
   return '';
 }
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
     let ext = path.extname(file.originalname || '').toLowerCase();
@@ -53,6 +53,9 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
   }
 });
+
+const isVercelRuntime = process.env.VERCEL === '1';
+const storage = isVercelRuntime ? multer.memoryStorage() : diskStorage;
 
 const fileFilter = (_req, file, cb) => {
   const mime = (file.mimetype || '').toLowerCase();
