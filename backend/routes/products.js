@@ -5,6 +5,7 @@ const Joi = require('joi');
 const slugify = require('slugify');
 const upload = require('../middleware/upload');
 const { protect, adminOnly } = require('../middleware/auth');
+const { hasCloudinaryConfig, uploadBufferToCloudinary } = require('../utils/cloudinaryUpload');
 
 const productSchema = Joi.object({
   name: Joi.string().trim().min(2).required(),
@@ -146,20 +147,30 @@ router.post('/upload', protect, adminOnly, (req, res, next) => {
     next();
   });
 }, async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'Image file is required.' });
-  }
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image file is required.' });
+    }
 
-  // Vercel runtime has a read-only filesystem, so return a data URL from memory upload.
-  if (req.file.buffer) {
-    const mime = req.file.mimetype || 'image/jpeg';
-    const imageUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
-    return res.status(201).json({ imageUrl, absoluteUrl: imageUrl });
-  }
+    // In serverless environments (e.g. Vercel), use cloud storage instead of returning base64 payloads.
+    if (req.file.buffer) {
+      if (!hasCloudinaryConfig()) {
+        return res.status(500).json({
+          message:
+            'Image upload storage is not configured for production. Add Cloudinary env vars on Vercel.'
+        });
+      }
+      const imageUrl = await uploadBufferToCloudinary(req.file.buffer, req.file.mimetype);
+      return res.status(201).json({ imageUrl, absoluteUrl: imageUrl });
+    }
 
-  const imageUrl = `/uploads/${req.file.filename}`;
-  const absoluteUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
-  res.status(201).json({ imageUrl, absoluteUrl });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const absoluteUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
+    res.status(201).json({ imageUrl, absoluteUrl });
+  } catch (err) {
+    console.error('Error uploading product image:', err);
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
 });
 
 module.exports = router;

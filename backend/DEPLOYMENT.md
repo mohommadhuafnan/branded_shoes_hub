@@ -6,6 +6,10 @@
 - `ADMIN_SETUP_KEY`
 - `CLIENT_ORIGIN`
 - `PORT` (optional)
+- `CLOUDINARY_CLOUD_NAME` (required for image upload on Vercel/serverless)
+- `CLOUDINARY_API_KEY` (required for image upload on Vercel/serverless)
+- `CLOUDINARY_API_SECRET` (required for image upload on Vercel/serverless)
+- `CLOUDINARY_UPLOAD_FOLDER` (optional, default: `products`)
 
 ## First-time Setup
 1. Install packages: `npm install`
