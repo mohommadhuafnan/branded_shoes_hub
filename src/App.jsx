@@ -126,8 +126,8 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/my-orders" element={user ? <MyOrders /> : <Navigate to="/login" replace />} />
-          <Route path="/login" element={<Auth mode="user" initialView="login" />} />
-          <Route path="/register" element={<Auth mode="user" initialView="signup" />} />
+          <Route path="/login" element={<Auth initialView="login" />} />
+          <Route path="/register" element={<Auth initialView="signup" />} />
           <Route path="/client-admin-auth-portal" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
           <Route path="/secure-admin-login-x9k2p7" element={<Navigate to={ADMIN_LOGIN_PATH} replace />} />
           <Route path={ADMIN_LOGIN_PATH} element={<AdminLogin />} />

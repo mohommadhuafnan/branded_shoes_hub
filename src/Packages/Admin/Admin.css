@@ -323,6 +323,14 @@
   margin-top: 8px;
 }
 
+.admin-upload-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .admin-shell {
   min-height: 100vh;
   background: rgba(18, 24, 38, 0.02);

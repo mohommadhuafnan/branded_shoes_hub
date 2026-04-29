@@ -102,6 +102,12 @@ function AdminDashboard() {
 
   const handleImageUpload = async (file) => {
     if (!file) return;
+    const nameOk = /\.(jpe?g|png|gif|webp|bmp|svg|avif|heic|heif|tiff?)$/i.test(file.name);
+    const mimeOk = !file.type || file.type.startsWith('image/');
+    if (!nameOk && !mimeOk) {
+      if (showToast) showToast('Invalid file', 'Please choose a JPG, PNG, WebP, or other image file.', 'warning');
+      return;
+    }
     setUploadingImage(true);
     try {
       const body = new FormData();
@@ -113,7 +119,7 @@ function AdminDashboard() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.message || 'Upload failed');
-      setFormData((prev) => ({ ...prev, image: j.imageUrl || j.absoluteUrl || '' }));
+      setFormData((prev) => ({ ...prev, image: j.imageUrl || j.absoluteUrl || prev.image }));
       if (showToast) showToast('Upload complete', 'Image uploaded successfully.', 'success');
     } catch (err) {
       if(showToast) showToast('Upload failed', err.message, 'warning');
@@ -590,7 +596,14 @@ function AdminDashboard() {
                 <div className="form-group">
                   <label>Image URL</label>
                   <input name="image" value={formData.image} onChange={handleInputChange} placeholder="https://... or /uploads/..." />
-                  <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0])} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,image/avif,image/heic,image/heif,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.avif,.heic,.heif,.tif,.tiff"
+                    onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                  />
+                  <small className="admin-upload-hint">
+                    JPG, PNG, GIF, WebP, BMP, SVG, AVIF, HEIC, TIFF — max 8 MB per file.
+                  </small>
                   {uploadingImage && <small>Uploading image...</small>}
                   {!!formData.image && (
                     <img

@@ -134,7 +134,18 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.post('/upload', protect, adminOnly, upload.single('image'), async (req, res) => {
+router.post('/upload', protect, adminOnly, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      const msg =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'Image too large (maximum 8 MB).'
+          : err.message || 'Upload failed.';
+      return res.status(400).json({ message: msg });
+    }
+    next();
+  });
+}, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Image file is required.' });
   }
