@@ -20,9 +20,10 @@ import {
 
 const API_URL = `${API_BASE}/auth`;
 
-function Auth() {
-  const [accountType, setAccountType] = useState('user'); // user | admin
-  const [view, setView] = useState('login'); // 'login', 'signup', 'forgot', 'verify'
+function Auth({ mode = 'user', initialView = 'login' }) {
+  const allowAdmin = mode === 'admin';
+  const [accountType, setAccountType] = useState(allowAdmin ? 'admin' : 'user'); // user | admin
+  const [view, setView] = useState(initialView); // 'login', 'signup', 'forgot', 'verify'
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [verifyEmail, setVerifyEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ function Auth() {
   };
 
   const switchAccountType = (type) => {
+    if (!allowAdmin) return;
     setAccountType(type);
     setView('login');
     setMessage({ type: '', text: '' });
@@ -389,22 +391,24 @@ function Auth() {
   return (
     <section className="auth-page">
       <div className="auth-container">
-        <div className="auth-role-switch">
-          <button
-            type="button"
-            className={accountType === 'user' ? 'active' : ''}
-            onClick={() => switchAccountType('user')}
-          >
-            User
-          </button>
-          <button
-            type="button"
-            className={accountType === 'admin' ? 'active' : ''}
-            onClick={() => switchAccountType('admin')}
-          >
-            Admin
-          </button>
-        </div>
+        {allowAdmin && (
+          <div className="auth-role-switch">
+            <button
+              type="button"
+              className={accountType === 'user' ? 'active' : ''}
+              onClick={() => switchAccountType('user')}
+            >
+              User
+            </button>
+            <button
+              type="button"
+              className={accountType === 'admin' ? 'active' : ''}
+              onClick={() => switchAccountType('admin')}
+            >
+              Admin
+            </button>
+          </div>
+        )}
         {view === 'login' && renderLogin()}
         {view === 'signup' && accountType === 'user' && renderSignup()}
         {view === 'forgot' && accountType === 'user' && renderForgot()}
