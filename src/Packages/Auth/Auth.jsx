@@ -107,6 +107,7 @@ function Auth({ initialView = 'login' }) {
             name: user.displayName || 'User',
             email: user.email,
             role: 'user',
+            photoURL: user.photoURL || '',
           }),
         );
         window.dispatchEvent(new Event('storage'));
@@ -137,6 +138,7 @@ function Auth({ initialView = 'login' }) {
         name: user.displayName || 'User',
         email: user.email,
         role: 'user',
+        photoURL: user.photoURL || '',
       }),
     );
     window.dispatchEvent(new Event('storage'));

@@ -58,6 +58,18 @@
   resize: vertical;
 }
 
+.settings-avatar-preview {
+  grid-column: 1 / -1;
+}
+
+.settings-avatar-preview img {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+
 @media (max-width: 760px) {
   .settings-grid {
     grid-template-columns: 1fr;

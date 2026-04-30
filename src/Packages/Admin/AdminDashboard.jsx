@@ -9,7 +9,22 @@ import brandLogo from '../../assets/logo.png';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState({ totalProducts: 0, availableProducts: 0, totalSales: 0, todaySales: 0, monthSales: 0, lowStockCount: 0, totalOrders: 0 });
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    availableProducts: 0,
+    totalSales: 0,
+    todaySales: 0,
+    monthSales: 0,
+    lowStockCount: 0,
+    totalOrders: 0,
+    todayOrderCount: 0,
+    monthOrderCount: 0,
+  });
+  const [animatedSales, setAnimatedSales] = useState({
+    todaySales: 0,
+    monthSales: 0,
+    totalSales: 0,
+  });
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [content, setContent] = useState({ heroTitle: '', heroDescription: '', heroTag: '', promoTitle: '', promoDescription: '', whatsappNumber: '' });
@@ -58,20 +73,68 @@ function AdminDashboard() {
     const ap = products.filter(p => Number(p.stock) > 0).length;
     const ls = products.filter(p => Number(p.stock) <= 5).length;
     
-    let ts = 0, td = 0, ms = 0;
-    const now = new Date();
-    orders.forEach(o => {
-       const price = Number(o.totalPrice) || 0;
-       ts += price;
-       if (o.createdAt) {
-           const d = new Date(o.createdAt);
-           if (d.toDateString() === now.toDateString()) td += price;
-           if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) ms += price;
-       }
-    });
+    let ts = 0
+    let td = 0
+    let ms = 0
+    let tdc = 0
+    let msc = 0
+    const now = new Date()
+    orders.forEach((o) => {
+      if (o.status === 'Cancelled') return
+      const price = Number(o.totalPrice) || 0
+      ts += price
+      if (!o.createdAt) return
+      const d = new Date(o.createdAt)
+      const isToday = d.toDateString() === now.toDateString()
+      const isThisMonth = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      if (isToday) {
+        td += price
+        tdc += 1
+      }
+      if (isThisMonth) {
+        ms += price
+        msc += 1
+      }
+    })
 
-    setStats({ totalProducts: tp, availableProducts: ap, totalSales: ts, todaySales: td, monthSales: ms, lowStockCount: ls, totalOrders: orders.length });
+    setStats({
+      totalProducts: tp,
+      availableProducts: ap,
+      totalSales: ts,
+      todaySales: td,
+      monthSales: ms,
+      lowStockCount: ls,
+      totalOrders: orders.length,
+      todayOrderCount: tdc,
+      monthOrderCount: msc,
+    })
   }, [products, orders]);
+
+  useEffect(() => {
+    const duration = 900
+    const start = performance.now()
+    const from = { ...animatedSales }
+    const to = {
+      todaySales: Number(stats.todaySales || 0),
+      monthSales: Number(stats.monthSales || 0),
+      totalSales: Number(stats.totalSales || 0),
+    }
+
+    let rafId = 0
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - (1 - progress) ** 3
+      setAnimatedSales({
+        todaySales: Math.round(from.todaySales + (to.todaySales - from.todaySales) * eased),
+        monthSales: Math.round(from.monthSales + (to.monthSales - from.monthSales) * eased),
+        totalSales: Math.round(from.totalSales + (to.totalSales - from.totalSales) * eased),
+      })
+      if (progress < 1) rafId = requestAnimationFrame(tick)
+    }
+
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [stats.todaySales, stats.monthSales, stats.totalSales])
 
   const handleInputChange = (e) => {
     const {name, value} = e.target;
@@ -241,6 +304,7 @@ function AdminDashboard() {
   }, [orders]);
 
   const goTab = (tab) => setActiveTab(tab);
+  const formatLkr = (value) => `LKR ${Number(value || 0).toLocaleString()}`
 
   const renderOverview = () => (
     <div>
@@ -252,22 +316,24 @@ function AdminDashboard() {
         <div className="stat-card">
           <div className="stat-icon"><FaChartLine /></div>
           <div className="stat-info">
-            <h3>Today's Sales</h3>
-            <strong>LKR {stats.todaySales.toLocaleString()}</strong>
+            <h3>Today&apos;s Sales</h3>
+            <strong>{formatLkr(animatedSales.todaySales)}</strong>
+            <span className="stat-card__hint">{stats.todayOrderCount} paid orders today</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon"><FaChartLine style={{color: '#4179ff'}}/></div>
           <div className="stat-info">
             <h3>Monthly Sales</h3>
-            <strong>LKR {stats.monthSales.toLocaleString()}</strong>
+            <strong>{formatLkr(animatedSales.monthSales)}</strong>
+            <span className="stat-card__hint">{stats.monthOrderCount} orders this month</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon"><FaChartLine style={{color: '#4179ff'}}/></div>
           <div className="stat-info">
             <h3>Total Sales</h3>
-            <strong>LKR {stats.totalSales.toLocaleString()}</strong>
+            <strong>{formatLkr(animatedSales.totalSales)}</strong>
           </div>
         </div>
         <button
@@ -486,8 +552,7 @@ function AdminDashboard() {
       <header className="admin-brand-bar">
         <img src={brandLogo} alt="" className="admin-brand-bar__logo" width={48} height={48} />
         <div className="admin-brand-bar__text">
-          <strong className="admin-brand-bar__title">Shouse Hub</strong>
-          <span className="admin-brand-bar__sub">Shushab · Admin console</span>
+          <span className="admin-brand-bar__title">Shouse Hub · Admin</span>
         </div>
       </header>
 
@@ -527,10 +592,12 @@ function AdminDashboard() {
       </aside>
 
       <main className="admin-content">
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'products' && renderProducts()}
-        {activeTab === 'orders' && renderOrders()}
-        {activeTab === 'content' && renderContent()}
+        <div key={activeTab} className="admin-tab-scene">
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'products' && renderProducts()}
+          {activeTab === 'orders' && renderOrders()}
+          {activeTab === 'content' && renderContent()}
+        </div>
       </main>
     </div>
 
@@ -586,7 +653,7 @@ function AdminDashboard() {
                 </div>
                 <div className="admin-two-col-grid">
                   <div className="form-group">
-                    <label>Price (LKR)</label>
+                    <label>List price (LKR)</label>
                     <input required type="number" name="price" value={formData.price} onChange={handleInputChange} />
                   </div>
                   <div className="form-group">
@@ -628,8 +695,14 @@ function AdminDashboard() {
                     <input name="brand" value={formData.brand} onChange={handleInputChange} placeholder="Shouse Hub" />
                   </div>
                   <div className="form-group">
-                    <label>Sale Price (optional)</label>
-                    <input type="number" name="salePrice" value={formData.salePrice} onChange={handleInputChange} />
+                    <label>Sale price (LKR, optional)</label>
+                    <input
+                      type="number"
+                      name="salePrice"
+                      value={formData.salePrice}
+                      onChange={handleInputChange}
+                      placeholder="Lower than list price"
+                    />
                   </div>
                 </div>
                 <div className="form-group">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FaBars, FaHeart, FaSearch, FaShoppingCart, FaTimes, FaUser, FaChartLine } from 'react-icons/fa'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useShop } from '../context/ShopContext'
@@ -13,19 +13,8 @@ function Nav() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'))
   const isAdmin = currentUser?.role === 'admin'
-  const [hidden, setHidden] = useState(false)
-  const [lastScroll, setLastScroll] = useState(0)
-
-  useEffect(() => {
-    const onScroll = () => {
-      const current = window.scrollY
-      setHidden(current > lastScroll && current > 120)
-      setLastScroll(current)
-    }
-
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [lastScroll])
+  const accountWrapRef = useRef(null)
+  const navRef = useRef(null)
 
   const closeMenu = () => setMobileOpen(false)
 
@@ -42,6 +31,36 @@ function Nav() {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const closeIfOutside = (e) => {
+      if (accountWrapRef.current && !accountWrapRef.current.contains(e.target)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', closeIfOutside)
+    document.addEventListener('touchstart', closeIfOutside)
+    return () => {
+      document.removeEventListener('mousedown', closeIfOutside)
+      document.removeEventListener('touchstart', closeIfOutside)
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const closeIfOutsideMenu = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setMobileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', closeIfOutsideMenu)
+    document.addEventListener('touchstart', closeIfOutsideMenu)
+    return () => {
+      document.removeEventListener('mousedown', closeIfOutsideMenu)
+      document.removeEventListener('touchstart', closeIfOutsideMenu)
+    }
+  }, [mobileOpen])
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -61,8 +80,8 @@ function Nav() {
   ]
 
   return (
-    <header className={`site-header ${hidden ? 'hidden' : ''}`}>
-      <nav className="navbar">
+    <header className="site-header">
+      <nav className="navbar" ref={navRef}>
         <NavLink to="/" className="logo-link" onClick={closeMenu}>
           <img src={logo} alt="Shouse Hub" />
           <div>
@@ -72,6 +91,17 @@ function Nav() {
         </NavLink>
 
         <div className={`nav-links ${mobileOpen ? 'open' : ''}`}>
+          <button
+            type="button"
+            className="nav-links-search-entry"
+            onClick={() => {
+              setSearchOpen(true)
+              closeMenu()
+            }}
+          >
+            <FaSearch />
+            <span className="nav-search-typing">Search shoes, brands, sizes...</span>
+          </button>
           {links.map((link) => (
             <NavLink key={link.to} to={link.to} onClick={closeMenu}>
               {link.label}
@@ -87,12 +117,19 @@ function Nav() {
           )}
 
           {currentUser ? (
-            <div className="account-menu-wrap">
-              <button type="button" className="icon-btn" aria-label="Account Menu" onClick={() => setMenuOpen((prev) => !prev)}>
-                <FaUser />
+            <div className="account-menu-wrap" ref={accountWrapRef}>
+              <button type="button" className="icon-btn icon-btn--avatar" aria-label="Account Menu" onClick={() => setMenuOpen((prev) => !prev)}>
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt="" className="account-avatar-img" />
+                ) : (
+                  <FaUser />
+                )}
               </button>
               {menuOpen && (
                 <div className="account-menu">
+                  {currentUser.photoURL && (
+                    <img src={currentUser.photoURL} alt="" className="account-menu-avatar" />
+                  )}
                   <strong>{currentUser.name}</strong>
                   <small>{currentUser.email}</small>
                   <small className="role-pill">{currentUser.role}</small>
@@ -111,7 +148,7 @@ function Nav() {
 
           <button
             type="button"
-            className="icon-btn search-btn hide-mobile-xs"
+            className="icon-btn search-btn"
             aria-label="Search products"
             onClick={() => setSearchOpen(true)}
           >

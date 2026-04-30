@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useShop } from '../../context/ShopContext'
 import './Settings.css'
 
@@ -6,11 +6,21 @@ function Settings() {
   const { settings, setSettings, showToast } = useShop()
   const [form, setForm] = useState(settings)
 
+  useEffect(() => {
+    setForm(settings)
+  }, [settings])
+
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
   const saveSettings = (event) => {
     event.preventDefault()
     setSettings(form)
+    const u = JSON.parse(localStorage.getItem('user') || 'null')
+    if (u) {
+      const next = { ...u, photoURL: (form.avatarUrl || '').trim() || u.photoURL || '' }
+      localStorage.setItem('user', JSON.stringify(next))
+      window.dispatchEvent(new Event('storage'))
+    }
     showToast?.('Saved', 'Your settings were updated.', 'success')
   }
 
@@ -48,6 +58,20 @@ function Settings() {
               Default Delivery Address
               <textarea value={form.address || ''} onChange={(e) => updateField('address', e.target.value)} />
             </label>
+            <label className="full">
+              Profile image URL
+              <input
+                type="url"
+                value={form.avatarUrl || ''}
+                onChange={(e) => updateField('avatarUrl', e.target.value)}
+                placeholder="https://… (e.g. Google account photo or any image link)"
+              />
+            </label>
+            {(form.avatarUrl || '').trim() && (
+              <div className="settings-avatar-preview">
+                <img src={form.avatarUrl.trim()} alt="Profile preview" />
+              </div>
+            )}
           </div>
           <button type="submit" className="btn btn-primary">Save Settings</button>
         </form>

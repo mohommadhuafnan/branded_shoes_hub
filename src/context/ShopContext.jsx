@@ -43,20 +43,30 @@ export function ShopProvider({ children }) {
           phone: '',
           address: '',
           preferredPayment: 'card',
+          avatarUrl: '',
         }
   })
   const mapProduct = (product) => {
     const id = product._id || product.id
+    const listPrice = Number(product.price ?? 0)
+    const saleRaw = product.salePrice
+    const saleNum =
+      saleRaw !== undefined && saleRaw !== null && saleRaw !== ''
+        ? Number(saleRaw)
+        : NaN
+    const onSale = Number.isFinite(saleNum) && saleNum >= 0 && saleNum < listPrice && listPrice > 0
+    const effectivePrice = onSale ? saleNum : listPrice
+    const originalPrice = onSale ? listPrice : null
     return {
       ...product,
       id,
       name: product.name,
       image: toAbsoluteImageUrl(product.image),
       sizes: product.sizes?.length ? product.sizes : ['40', '41', '42'],
-      price: Number(product.price || 0),
-      originalPrice: product.salePrice ? Number(product.price || 0) : null,
+      price: effectivePrice,
+      originalPrice,
       inStock: Number(product.stock || 0) > 0,
-      priceValue: Number(product.price || 0),
+      priceValue: effectivePrice,
       title: product.name,
       desc: product.description,
       badge: product.featured ? 'Featured' : Number(product.stock || 0) <= 5 ? 'Low Stock' : 'New',
@@ -128,6 +138,7 @@ export function ShopProvider({ children }) {
         ...current,
         fullName: current.fullName || user.name || '',
         email: current.email || user.email || '',
+        avatarUrl: current.avatarUrl || user.photoURL || '',
       }))
     }
   }, [])
@@ -154,6 +165,14 @@ export function ShopProvider({ children }) {
     })
     setIsCartOpen(true)
     showToast('Added to cart', `${product.name} (${size}) is now in your cart.`)
+  }
+
+  /** Replaces the cart with this single line item and opens checkout (buy now). */
+  const buyNowSingle = (product, size = product.sizes[0]) => {
+    setCartItems([{ ...product, size, qty: 1 }])
+    setIsCartOpen(false)
+    setIsCheckoutOpen(true)
+    showToast('Checkout', `${product.name} (${size}) — complete your order below.`, 'success')
   }
 
   const toggleFavorite = (productId) => {
@@ -219,7 +238,10 @@ export function ShopProvider({ children }) {
     [products],
   )
   const homeHighlights = useMemo(() => products.filter((p) => p.featured).slice(0, 12), [products])
-  const saleProducts = useMemo(() => products.filter((p) => p.originalPrice).slice(0, 12), [products])
+  const saleProducts = useMemo(
+    () => products.filter((p) => p.originalPrice != null).slice(0, 24),
+    [products],
+  )
 
   const value = {
     products,
@@ -234,6 +256,7 @@ export function ShopProvider({ children }) {
     setIsCartOpen,
     setIsCheckoutOpen,
     addToCart,
+    buyNowSingle,
     toggleFavorite,
     updateCartQuantity,
     removeFromCart,

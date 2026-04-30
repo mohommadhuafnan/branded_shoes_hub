@@ -2,7 +2,14 @@
   width: 100%;
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8f4 0%, #ffffff 40%, #fff5ee 100%);
-  overflow: hidden;
+  overflow-x: hidden;
+}
+
+.sales-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 28px 16px;
+  font-size: 1rem;
 }
 
 /* HERO */

@@ -1,22 +1,37 @@
+/* /admin hides public Nav — <main> still had nav offset padding; flush to viewport top */
+main:has(.admin-shell) {
+  padding-top: 0 !important;
+}
+
 .admin-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: calc(100vh - 106px);
+  flex: 1;
+  min-height: 0;
+  align-items: start;
 }
 
 .admin-sidebar {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  padding: 30px 0;
+  background: #131a2b;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px 0;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 68px;
+  align-self: start;
+  min-height: calc(100vh - 68px);
+  height: calc(100vh - 68px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 2;
 }
 
 .admin-sidebar h2 {
   padding: 0 24px;
   margin: 0 0 30px;
   font-size: 1.4rem;
-  color: var(--secondary);
+  color: #eef2ff;
 }
 
 .admin-nav {
@@ -32,13 +47,13 @@
   background: transparent;
   border: 0;
   font-weight: 600;
-  color: var(--muted);
+  color: #c7d2fe;
   text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .admin-nav-item svg {
@@ -46,12 +61,13 @@
 }
 
 .admin-nav-item:hover {
-  background: rgba(18, 24, 38, 0.04);
-  color: var(--secondary);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: translateX(4px);
 }
 
 .admin-nav-item.active {
-  background: var(--primary);
+  background: #ff5a5f;
   color: #fff;
 }
 
@@ -59,6 +75,10 @@
   padding: 40px;
   background: rgba(18, 24, 38, 0.01);
   overflow-y: auto;
+}
+
+.admin-tab-scene {
+  animation: adminTabEnter 260ms ease;
 }
 
 .admin-header {
@@ -90,6 +110,12 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
 }
 
 .stat-icon {
@@ -121,6 +147,7 @@
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.03);
   overflow: hidden;
+  animation: adminPanelEnter 320ms ease;
 }
 
 .panel-header {
@@ -335,13 +362,15 @@
   min-height: 100vh;
   background: rgba(18, 24, 38, 0.02);
   padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-brand-bar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
+  gap: 12px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   position: sticky;
@@ -361,25 +390,21 @@
 
 .admin-brand-bar__text {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
   min-width: 0;
 }
 
 .admin-brand-bar__title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: var(--secondary);
   letter-spacing: 0.02em;
-}
-
-.admin-brand-bar__sub {
-  font-size: 0.82rem;
-  color: var(--muted);
+  font-weight: 700;
+  margin: 0;
 }
 
 .admin-sidebar-title {
   font-size: 1.05rem;
-  color: var(--muted);
+  color: #a5b4fc;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -529,6 +554,7 @@
   .admin-mobile-tab.active {
     color: var(--primary);
     background: rgba(255, 90, 95, 0.08);
+  animation: adminPulse 220ms ease;
   }
   .admin-mobile-tab--danger {
     color: #dc2626;
@@ -562,5 +588,36 @@
 @media (min-width: 901px) {
   .admin-product-cards {
     display: none !important;
+  }
+}
+
+@keyframes adminTabEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes adminPanelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes adminPulse {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
   }
 }

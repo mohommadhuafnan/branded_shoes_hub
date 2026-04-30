@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { getRedirectResult } from 'firebase/auth'
 import { auth } from './firebase'
@@ -24,6 +24,7 @@ import { useScrollAnimations } from './hooks/useScrollAnimations'
 import { API_BASE, authHeaders } from './lib/api'
 
 const ADMIN_LOGIN_PATH = '/admin-login'
+const PRIVACY_CONSENT_KEY = 'shouse-privacy-consent'
 
 function Toast() {
   const { toast } = useShop()
@@ -37,11 +38,32 @@ function Toast() {
   )
 }
 
+function PrivacyConsent({ onChoice }) {
+  return (
+    <section className="privacy-consent" role="dialog" aria-live="polite" aria-label="Privacy notice">
+      <h3>We value your privacy</h3>
+      <p>
+        We use cookies and cache to enhance your browsing experience, serve personalized content, and analyze our
+        traffic. By clicking &quot;Accept&quot; you consent to our use of these technologies.
+      </p>
+      <div className="privacy-consent__actions">
+        <button type="button" className="btn btn-secondary" onClick={() => onChoice('decline')}>
+          Decline
+        </button>
+        <button type="button" className="btn btn-primary" onClick={() => onChoice('accept')}>
+          Accept
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function App() {
   useScrollAnimations()
-  const { completeOrder, showToast } = useShop()
+  const { completeOrder, showToast, isCartOpen, isCheckoutOpen } = useShop()
   const navigate = useNavigate()
   const location = useLocation()
+  const [privacyChoice, setPrivacyChoice] = useState(() => localStorage.getItem(PRIVACY_CONSENT_KEY))
 
   useEffect(() => {
     let cancelled = false
@@ -55,6 +77,7 @@ function App() {
             name: result.user.displayName || 'User',
             email: result.user.email,
             role: 'user',
+            photoURL: result.user.photoURL || '',
           }),
         )
         window.dispatchEvent(new Event('storage'))
@@ -110,9 +133,16 @@ function App() {
     '/secure-admin-login-x9k2p7',
     '/admin',
   ].includes(location.pathname)
+  const hideNavForMobileOverlay = !hidePublicLayout && (isCartOpen || isCheckoutOpen)
+  const showPrivacyConsent = !hidePublicLayout && !privacyChoice
+
+  const handlePrivacyChoice = (choice) => {
+    localStorage.setItem(PRIVACY_CONSENT_KEY, choice)
+    setPrivacyChoice(choice)
+  }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${hideNavForMobileOverlay ? 'app-shell--mobile-overlay-open' : ''}`}>
       {!hidePublicLayout && <Nav />}
 
       <main>
@@ -142,6 +172,7 @@ function App() {
       <CartDrawer />
       <PaymentModal />
       <WhatsAppFloat />
+      {showPrivacyConsent && <PrivacyConsent onChoice={handlePrivacyChoice} />}
       <Toast />
     </div>
   )
