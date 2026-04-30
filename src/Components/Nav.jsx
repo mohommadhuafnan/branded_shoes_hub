@@ -11,6 +11,7 @@ function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [hidden, setHidden] = useState(false)
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'))
   const isAdmin = currentUser?.role === 'admin'
   const accountWrapRef = useRef(null)
@@ -62,6 +63,22 @@ function Nav() {
     }
   }, [mobileOpen])
 
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || 0
+      if (y <= 20) {
+        setHidden(false)
+        return
+      }
+      if (y > 120) {
+        setHidden(true)
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -80,7 +97,7 @@ function Nav() {
   ]
 
   return (
-    <header className="site-header">
+    <header className={`site-header ${hidden ? 'hidden' : ''}`}>
       <nav className="navbar" ref={navRef}>
         <NavLink to="/" className="logo-link" onClick={closeMenu}>
           <img src={logo} alt="Shouse Hub" />

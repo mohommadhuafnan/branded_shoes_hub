@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { FaCheckCircle, FaCreditCard, FaMoneyBillWave, FaUniversity, FaTimes, FaWallet } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
 import { useShop } from '../context/ShopContext'
 import { API_BASE, authHeaders } from '../lib/api'
 
 function PaymentModal() {
-  const { isCheckoutOpen, setIsCheckoutOpen, cartSummary, cartItems, completeOrder, showToast, settings } = useShop()
+  const navigate = useNavigate()
+  const { isCheckoutOpen, setIsCheckoutOpen, cartSummary, cartItems, completeOrder, showToast, settings, content } = useShop()
   const [form, setForm] = useState({
     name: settings?.fullName || '',
     phone: settings?.phone || '',
@@ -23,6 +25,15 @@ function PaymentModal() {
     }))
   }, [settings?.preferredPayment, settings?.fullName, settings?.phone, settings?.address])
 
+  useEffect(() => {
+    if (!isCheckoutOpen) return
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    if (user) return
+    setIsCheckoutOpen(false)
+    showToast('Login required', 'Please sign in to continue checkout.', 'info')
+    navigate('/login')
+  }, [isCheckoutOpen, navigate, setIsCheckoutOpen, showToast])
+
   const submitOrder = async (event) => {
     event.preventDefault()
     if (!form.name || !form.phone || !form.address || !form.city) {
@@ -31,6 +42,12 @@ function PaymentModal() {
     }
     try {
       const user = JSON.parse(localStorage.getItem('user') || 'null')
+      if (!user) {
+        setIsCheckoutOpen(false)
+        showToast('Login required', 'Please sign in to place your order.', 'info')
+        navigate('/login')
+        return
+      }
 
       const payload = {
         customerName: form.name,
@@ -60,6 +77,32 @@ function PaymentModal() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || 'Order failed')
+
+      const whatsappNumber = String(content?.whatsappNumber || '').replace(/\D/g, '')
+      if (whatsappNumber) {
+        const itemLines = cartItems
+          .map((item, index) => `${index + 1}. ${item.name} (Size ${item.size}) x${item.qty} - LKR ${(item.price * item.qty).toLocaleString()}`)
+          .join('\n')
+        const message = [
+          'New Order - Shouse Hub',
+          `Customer: ${form.name}`,
+          `Username: ${user.name || 'User'}`,
+          `Email: ${user.email || 'N/A'}`,
+          `Phone: ${form.phone}`,
+          `Address: ${form.address}, ${form.city}`,
+          `Payment: ${form.method.toUpperCase()}`,
+          '',
+          'Items:',
+          itemLines,
+          '',
+          `Subtotal: LKR ${cartSummary.subtotal.toLocaleString()}`,
+          `Discount: LKR ${cartSummary.discount.toLocaleString()}`,
+          `Delivery: LKR ${cartSummary.delivery.toLocaleString()}`,
+          `Total: LKR ${cartSummary.total.toLocaleString()}`,
+        ].join('\n')
+        const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
+        window.open(waUrl, '_blank', 'noopener,noreferrer')
+      }
 
       completeOrder(form.name)
       setForm({ name: '', phone: '', address: '', city: '', method: 'card' })

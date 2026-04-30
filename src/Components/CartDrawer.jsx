@@ -1,7 +1,9 @@
 import { FaMinus, FaPlus, FaTimes, FaTrash, FaCreditCard } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
 import { useShop } from '../context/ShopContext'
 
 function CartDrawer() {
+  const navigate = useNavigate()
   const {
     cartItems,
     cartSummary,
@@ -75,7 +77,15 @@ function CartDrawer() {
             type="button"
             className="btn btn-primary full"
             disabled={!cartItems.length}
-            onClick={() => setIsCheckoutOpen(true)}
+            onClick={() => {
+              const user = JSON.parse(localStorage.getItem('user') || 'null')
+              if (!user) {
+                setIsCartOpen(false)
+                navigate('/login')
+                return
+              }
+              setIsCheckoutOpen(true)
+            }}
           >
             <FaCreditCard /> Proceed to Checkout
           </button>
