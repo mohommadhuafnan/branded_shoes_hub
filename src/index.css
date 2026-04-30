@@ -419,6 +419,15 @@ main {
 
   .mobile-toggle {
     display: grid;
+    order: 10;
+  }
+
+  .hide-mobile-sm {
+    display: none !important;
+  }
+
+  .nav-actions {
+    gap: 8px;
   }
 
   .account-menu {

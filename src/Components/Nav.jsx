@@ -16,6 +16,7 @@ function Nav() {
   const isAdmin = currentUser?.role === 'admin'
   const accountWrapRef = useRef(null)
   const navRef = useRef(null)
+  const lastScrollYRef = useRef(0)
 
   const closeMenu = () => setMobileOpen(false)
 
@@ -66,11 +67,19 @@ function Nav() {
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || 0
+      const lastY = lastScrollYRef.current
+      const delta = y - lastY
+      lastScrollYRef.current = y
+
       if (y <= 20) {
         setHidden(false)
         return
       }
-      if (y > 120) {
+      if (delta < -2) {
+        setHidden(false)
+        return
+      }
+      if (delta > 4 && y > 120) {
         setHidden(true)
       }
     }
@@ -128,7 +137,7 @@ function Nav() {
 
         <div className="nav-actions">
           {isAdmin && (
-            <NavLink to="/admin" className="icon-btn" aria-label="Admin Dashboard" onClick={closeMenu}>
+            <NavLink to="/admin" className="icon-btn hide-mobile-sm" aria-label="Admin Dashboard" onClick={closeMenu}>
               <FaChartLine />
             </NavLink>
           )}
@@ -172,7 +181,7 @@ function Nav() {
             <FaSearch />
           </button>
 
-          <button type="button" className="icon-btn hide-mobile-xs" aria-label="Favorites">
+          <button type="button" className="icon-btn hide-mobile-sm hide-mobile-xs" aria-label="Favorites">
             <FaHeart />
             <span className="count-badge">{favorites.length}</span>
           </button>
